@@ -76,13 +76,13 @@ variable "vm_network_bridge" {
 variable "vm_vlan_tag" {
   description = "VLAN tag for the VM network (set to null if not using VLANs)"
   type        = number
-  default     = 40
+  default     = null
 }
 
 variable "node_gateway" {
   description = "Gateway IP for K8s nodes"
   type        = string
-  default     = "192.168.40.1"
+  default     = "192.168.20.1"
 }
 
 variable "dns_servers" {
@@ -110,14 +110,14 @@ variable "control_plane_nodes" {
     # HA control plane - can migrate between 64GB hosts
     {
       name         = "k8s-cp-1"
-      ip_address   = "192.168.40.11"
+      ip_address   = "192.168.20.40"
       proxmox_node = "yggdrasil01"
       ha_enabled   = true
       ha_group     = "ha-64gb"
     },
     # Fixed control planes on 32GB hosts
-    { name = "k8s-cp-2", ip_address = "192.168.40.12", proxmox_node = "yggdrasil04" },
-    { name = "k8s-cp-3", ip_address = "192.168.40.13", proxmox_node = "yggdrasil05" },
+    { name = "k8s-cp-2", ip_address = "192.168.20.41", proxmox_node = "yggdrasil04" },
+    { name = "k8s-cp-3", ip_address = "192.168.20.42", proxmox_node = "yggdrasil05" },
   ]
 }
 
@@ -138,9 +138,9 @@ variable "worker_nodes" {
   }))
   default = [
     # Workers on 64GB hosts
-    { name = "k8s-worker-1", ip_address = "192.168.40.21", proxmox_node = "yggdrasil01" },
-    { name = "k8s-worker-2", ip_address = "192.168.40.22", proxmox_node = "yggdrasil02" },
-    { name = "k8s-worker-3", ip_address = "192.168.40.23", proxmox_node = "yggdrasil03" },
+    { name = "k8s-worker-1", ip_address = "192.168.20.50", proxmox_node = "yggdrasil01" },
+    { name = "k8s-worker-2", ip_address = "192.168.20.51", proxmox_node = "yggdrasil02" },
+    { name = "k8s-worker-3", ip_address = "192.168.20.52", proxmox_node = "yggdrasil03" },
   ]
 }
 
