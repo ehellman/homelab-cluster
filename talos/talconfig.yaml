@@ -1,0 +1,148 @@
+---
+clusterName: kubernetes
+
+talosVersion: "${talosVersion}"
+kubernetesVersion: "${kubernetesVersion}"
+
+endpoint: https://192.168.40.10:6443
+additionalApiServerCertSans: &sans
+  - "127.0.0.1"
+  - "192.168.40.10"
+additionalMachineCertSans: *sans
+
+clusterPodNets: ["10.42.0.0/16"]
+clusterSvcNets: ["10.43.0.0/16"]
+
+# Disable built-in CNI to use Cilium
+cniConfig:
+  name: none
+
+nodes:
+  - hostname: "k8s-cp-1"
+    ipAddress: "192.168.40.11"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b
+    controlPlane: true
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "bc:24:11:f8:2c:96"
+        vlans:
+          - vlanId: 40
+            addresses:
+              - "192.168.40.11/24"
+            mtu: 1500
+            routes:
+              - network: "0.0.0.0/0"
+                gateway: "192.168.40.1"
+            vip:
+              ip: "192.168.40.10"
+  - hostname: "k8s-cp-2"
+    ipAddress: "192.168.40.12"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b
+    controlPlane: true
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "bc:24:11:92:5d:c7"
+        vlans:
+          - vlanId: 40
+            addresses:
+              - "192.168.40.12/24"
+            mtu: 1500
+            routes:
+              - network: "0.0.0.0/0"
+                gateway: "192.168.40.1"
+            vip:
+              ip: "192.168.40.10"
+  - hostname: "k8s-cp-3"
+    ipAddress: "192.168.40.13"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b
+    controlPlane: true
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "bc:24:11:7c:eb:47"
+        vlans:
+          - vlanId: 40
+            addresses:
+              - "192.168.40.13/24"
+            mtu: 1500
+            routes:
+              - network: "0.0.0.0/0"
+                gateway: "192.168.40.1"
+            vip:
+              ip: "192.168.40.10"
+  - hostname: "k8s-worker-1"
+    ipAddress: "192.168.40.21"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "bc:24:11:54:65:61"
+        vlans:
+          - vlanId: 40
+            addresses:
+              - "192.168.40.21/24"
+            mtu: 1500
+            routes:
+              - network: "0.0.0.0/0"
+                gateway: "192.168.40.1"
+  - hostname: "k8s-worker-2"
+    ipAddress: "192.168.40.22"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "bc:24:11:32:92:ab"
+        vlans:
+          - vlanId: 40
+            addresses:
+              - "192.168.40.22/24"
+            mtu: 1500
+            routes:
+              - network: "0.0.0.0/0"
+                gateway: "192.168.40.1"
+  - hostname: "k8s-worker-3"
+    ipAddress: "192.168.40.23"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "bc:24:11:40:38:fc"
+        vlans:
+          - vlanId: 40
+            addresses:
+              - "192.168.40.23/24"
+            mtu: 1500
+            routes:
+              - network: "0.0.0.0/0"
+                gateway: "192.168.40.1"
+
+# Global patches
+patches:
+  - "@./patches/global/machine-files.yaml"
+  - "@./patches/global/machine-kubelet.yaml"
+  - "@./patches/global/machine-network.yaml"
+  - "@./patches/global/machine-sysctls.yaml"
+  - "@./patches/global/machine-time.yaml"
+
+# Controller patches
+controlPlane:
+  patches:
+    - "@./patches/controller/cluster.yaml"
+
