@@ -18,8 +18,4 @@ spec:
       retries: 3
   values:
     connect:
-      credentials_base64: ""  # Will be set via secret
-      credentialsName: onepassword-connect-credentials
-      credentialsKey: 1password-credentials.json
-    operator:
-      create: false  # We use External Secrets instead
+      credentials_base64: "#{ onepassword_credentials_json }#"

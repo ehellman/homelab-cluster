@@ -8,7 +8,7 @@ nodes:
     address: "${node.address}"
     controller: true
     disk: "/dev/sda"
-    mac_addr: "${node.mac_addr}"
+    mac_addr: "${lower(node.mac_addr)}"
     schematic_id: "${schematic_id}"
 %{ endfor ~}
 %{ for node in worker_nodes ~}
@@ -16,6 +16,6 @@ nodes:
     address: "${node.address}"
     controller: false
     disk: "/dev/sda"
-    mac_addr: "${node.mac_addr}"
+    mac_addr: "${lower(node.mac_addr)}"
     schematic_id: "${schematic_id}"
 %{ endfor ~}
