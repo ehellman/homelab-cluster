@@ -26,6 +26,9 @@ import (
 	cilium_bgp_router_asn?: string & !=""
 	cilium_bgp_node_asn?: string & !=""
 	cilium_loadbalancer_mode?: *"dsr" | "snat"
+	onepassword_vault_name?: string & !=""
+	onepassword_credentials_json?: string & !=""
+	onepassword_connect_token?: string & !=""
 }
 
 #Config
