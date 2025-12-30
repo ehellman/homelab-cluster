@@ -9,4 +9,6 @@ components:
 resources:
   - ./namespace.yaml
   - ./external-secrets/ks.yaml
+#% if onepassword_vault_name is defined %#
   - ./onepassword-connect/ks.yaml
+#% endif %#
