@@ -1,0 +1,77 @@
+# =============================================================================
+# Proxmox Connection (copy from 1Password)
+# =============================================================================
+proxmox_endpoint  = "https://192.168.20.201:8006"
+proxmox_api_token = "root@pam!terraform=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+proxmox_insecure  = true
+
+# =============================================================================
+# Proxmox Cluster
+# =============================================================================
+proxmox_nodes = ["yggdrasil01", "yggdrasil02", "yggdrasil03", "yggdrasil04", "yggdrasil05"]
+
+# =============================================================================
+# Talos Image
+# =============================================================================
+# Generate schematic at: https://factory.talos.dev
+# Extensions: qemu-guest-agent, iscsi-tools, util-linux-tools (optional)
+talos_image = {
+  schematic_id = "88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b"
+  version      = "v1.12.0"
+  # Uncomment to prepare for upgrades:
+  # update_version = "v1.12.1"
+  # update_schematic_id = "..."  # Optional, uses current schematic if not set
+}
+
+talos_iso_storage = "cephfs_shared"
+
+# =============================================================================
+# Storage
+# =============================================================================
+vm_storage_local  = "local-lvm"
+vm_storage_shared = "ceph-pool"  # For HA-enabled VMs
+
+# =============================================================================
+# Networking
+# =============================================================================
+vm_network_bridge = "vmbr0"
+vm_vlan_tag       = 40
+node_gateway      = "192.168.40.1"
+dns_servers       = ["1.1.1.1", "1.0.0.1"]
+
+# =============================================================================
+# Control Plane Nodes
+# =============================================================================
+control_plane_nodes = [
+  {
+    name         = "k8s-cp-1"
+    ip_address   = "192.168.40.11"
+    proxmox_node = "yggdrasil01"
+    ha_enabled   = true
+    ha_group     = "ha-64gb"
+  },
+  {
+    name         = "k8s-cp-2"
+    ip_address   = "192.168.40.12"
+    proxmox_node = "yggdrasil04"
+  },
+  {
+    name         = "k8s-cp-3"
+    ip_address   = "192.168.40.13"
+    proxmox_node = "yggdrasil05"
+  },
+]
+
+# =============================================================================
+# Worker Nodes
+# =============================================================================
+worker_nodes = [
+  { name = "k8s-worker-1", ip_address = "192.168.40.21", proxmox_node = "yggdrasil01" },
+  { name = "k8s-worker-2", ip_address = "192.168.40.22", proxmox_node = "yggdrasil02" },
+  { name = "k8s-worker-3", ip_address = "192.168.40.23", proxmox_node = "yggdrasil03" },
+]
+
+# =============================================================================
+# VM IDs
+# =============================================================================
+vm_start_id = 200
