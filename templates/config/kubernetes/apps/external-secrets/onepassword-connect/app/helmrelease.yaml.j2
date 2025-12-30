@@ -1,0 +1,25 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: onepassword-connect
+spec:
+  interval: 1h
+  chartRef:
+    kind: OCIRepository
+    name: onepassword-connect
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      strategy: rollback
+      retries: 3
+  values:
+    connect:
+      credentials_base64: ""  # Will be set via secret
+      credentialsName: onepassword-connect-credentials
+      credentialsKey: 1password-credentials.json
+    operator:
+      create: false  # We use External Secrets instead
