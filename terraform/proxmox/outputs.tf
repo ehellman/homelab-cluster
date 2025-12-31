@@ -47,5 +47,5 @@ output "talos_schematic_id" {
 
 output "cluster_api_addr" {
   description = "Recommended cluster API address (VIP)"
-  value       = "192.168.40.10"
+  value       = "192.168.20.10"
 }
