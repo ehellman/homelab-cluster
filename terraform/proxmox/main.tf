@@ -101,7 +101,6 @@ resource "proxmox_virtual_environment_vm" "control_plane" {
   network_device {
     bridge      = var.vm_network_bridge
     mac_address = upper(macaddress.k8s_nodes[each.key].address)
-    vlan_id     = var.vm_vlan_tag
   }
 
   initialization {
@@ -110,6 +109,9 @@ resource "proxmox_virtual_environment_vm" "control_plane" {
         address = "${each.value.ip_address}/24"
         gateway = var.node_gateway
       }
+    }
+    dns {
+      servers = var.dns_servers
     }
   }
 
@@ -175,7 +177,6 @@ resource "proxmox_virtual_environment_vm" "worker" {
   network_device {
     bridge      = var.vm_network_bridge
     mac_address = upper(macaddress.k8s_nodes[each.key].address)
-    vlan_id     = var.vm_vlan_tag
   }
 
   initialization {
@@ -184,6 +185,9 @@ resource "proxmox_virtual_environment_vm" "worker" {
         address = "${each.value.ip_address}/24"
         gateway = var.node_gateway
       }
+    }
+    dns {
+      servers = var.dns_servers
     }
   }
 
