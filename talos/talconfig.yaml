@@ -4,10 +4,10 @@ clusterName: kubernetes
 talosVersion: "${talosVersion}"
 kubernetesVersion: "${kubernetesVersion}"
 
-endpoint: https://192.168.20.40:6443
+endpoint: https://192.168.20.10:6443
 additionalApiServerCertSans: &sans
   - "127.0.0.1"
-  - "192.168.20.40"
+  - "192.168.20.10"
 additionalMachineCertSans: *sans
 
 clusterPodNets: ["10.42.0.0/16"]
@@ -19,7 +19,7 @@ cniConfig:
 
 nodes:
   - hostname: "k8s-cp-1"
-    ipAddress: "192.168.20.41"
+    ipAddress: "192.168.20.11"
     installDisk: "/dev/sda"
     machineSpec:
       secureboot: false
@@ -27,18 +27,18 @@ nodes:
     controlPlane: true
     networkInterfaces:
       - deviceSelector:
-          hardwareAddr: "bc:24:11:44:7e:35"
+          hardwareAddr: "bc:24:11:26:8a:da"
         dhcp: false
         addresses:
-          - "192.168.20.41/24"
+          - "192.168.20.11/24"
         routes:
           - network: "0.0.0.0/0"
             gateway: "192.168.20.1"
         mtu: 1500
         vip:
-          ip: "192.168.20.40"
+          ip: "192.168.20.10"
   - hostname: "k8s-cp-2"
-    ipAddress: "192.168.20.42"
+    ipAddress: "192.168.20.12"
     installDisk: "/dev/sda"
     machineSpec:
       secureboot: false
@@ -46,18 +46,18 @@ nodes:
     controlPlane: true
     networkInterfaces:
       - deviceSelector:
-          hardwareAddr: "bc:24:11:0e:df:76"
+          hardwareAddr: "bc:24:11:50:48:7b"
         dhcp: false
         addresses:
-          - "192.168.20.42/24"
+          - "192.168.20.12/24"
         routes:
           - network: "0.0.0.0/0"
             gateway: "192.168.20.1"
         mtu: 1500
         vip:
-          ip: "192.168.20.40"
+          ip: "192.168.20.10"
   - hostname: "k8s-cp-3"
-    ipAddress: "192.168.20.43"
+    ipAddress: "192.168.20.13"
     installDisk: "/dev/sda"
     machineSpec:
       secureboot: false
@@ -65,18 +65,18 @@ nodes:
     controlPlane: true
     networkInterfaces:
       - deviceSelector:
-          hardwareAddr: "bc:24:11:ab:fe:f5"
+          hardwareAddr: "bc:24:11:25:bb:5c"
         dhcp: false
         addresses:
-          - "192.168.20.43/24"
+          - "192.168.20.13/24"
         routes:
           - network: "0.0.0.0/0"
             gateway: "192.168.20.1"
         mtu: 1500
         vip:
-          ip: "192.168.20.40"
+          ip: "192.168.20.10"
   - hostname: "k8s-worker-1"
-    ipAddress: "192.168.20.51"
+    ipAddress: "192.168.20.21"
     installDisk: "/dev/sda"
     machineSpec:
       secureboot: false
@@ -84,16 +84,16 @@ nodes:
     controlPlane: false
     networkInterfaces:
       - deviceSelector:
-          hardwareAddr: "bc:24:11:73:1c:55"
+          hardwareAddr: "bc:24:11:7c:44:cc"
         dhcp: false
         addresses:
-          - "192.168.20.51/24"
+          - "192.168.20.21/24"
         routes:
           - network: "0.0.0.0/0"
             gateway: "192.168.20.1"
         mtu: 1500
   - hostname: "k8s-worker-2"
-    ipAddress: "192.168.20.52"
+    ipAddress: "192.168.20.22"
     installDisk: "/dev/sda"
     machineSpec:
       secureboot: false
@@ -101,16 +101,16 @@ nodes:
     controlPlane: false
     networkInterfaces:
       - deviceSelector:
-          hardwareAddr: "bc:24:11:75:a9:bc"
+          hardwareAddr: "bc:24:11:ef:0c:fd"
         dhcp: false
         addresses:
-          - "192.168.20.52/24"
+          - "192.168.20.22/24"
         routes:
           - network: "0.0.0.0/0"
             gateway: "192.168.20.1"
         mtu: 1500
   - hostname: "k8s-worker-3"
-    ipAddress: "192.168.20.53"
+    ipAddress: "192.168.20.23"
     installDisk: "/dev/sda"
     machineSpec:
       secureboot: false
@@ -118,10 +118,10 @@ nodes:
     controlPlane: false
     networkInterfaces:
       - deviceSelector:
-          hardwareAddr: "bc:24:11:9c:cb:81"
+          hardwareAddr: "bc:24:11:60:fa:6d"
         dhcp: false
         addresses:
-          - "192.168.20.53/24"
+          - "192.168.20.23/24"
         routes:
           - network: "0.0.0.0/0"
             gateway: "192.168.20.1"
