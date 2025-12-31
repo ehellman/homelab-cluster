@@ -5,9 +5,13 @@ metadata:
   name: onepassword-connect
 spec:
   interval: 1h
-  chartRef:
-    kind: OCIRepository
-    name: onepassword-connect
+  chart:
+    spec:
+      chart: connect
+      version: "1.17.1"
+      sourceRef:
+        kind: HelmRepository
+        name: onepassword-connect
   install:
     remediation:
       retries: 3
