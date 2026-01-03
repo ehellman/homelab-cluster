@@ -12,6 +12,9 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: onepassword-connect
+  dependsOn:
+    - name: external-secrets
+      namespace: external-secrets
   install:
     remediation:
       retries: 3
@@ -24,3 +27,5 @@ spec:
     connect:
       credentialsName: onepassword-connect-credentials
       credentialsKey: 1password-credentials.json
+      annotations:
+        secret.reloader.stakater.com/reload: onepassword-connect-credentials,onepassword-connect-token
