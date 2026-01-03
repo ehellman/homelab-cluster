@@ -1,0 +1,37 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ceph-rbd-csi
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: ceph-csi-rbd
+      version: "3.13.0"
+      sourceRef:
+        kind: HelmRepository
+        name: ceph-csi
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      strategy: rollback
+      retries: 3
+  values:
+    csiConfig:
+      - clusterID: "4e4b1300-aa61-4c18-9edc-348a3e77d6ef"
+        monitors:
+          - "192.168.20.201:6789"
+          - "192.168.20.202:6789"
+          - "192.168.20.203:6789"
+          - "192.168.20.204:6789"
+          - "192.168.20.205:6789"
+    provisioner:
+      replicaCount: 2
+    storageClass:
+      create: false  # We'll create our own
+    secret:
+      create: false  # We'll use ExternalSecret
