@@ -1,0 +1,22 @@
+# Internal access to qBittorrent web UI
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: qbittorrent
+spec:
+  hostnames:
+    - "qbittorrent.${SECRET_DOMAIN}"
+  parentRefs:
+    - kind: Gateway
+      name: envoy-internal
+      namespace: network
+      sectionName: https
+  rules:
+    - backendRefs:
+        - name: qbittorrent
+          port: 80
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
