@@ -1,0 +1,28 @@
+# Static NFS PersistentVolume for TrueNAS media share
+#
+# Used by: Plex, Jellyfin, *arr apps (Sonarr, Radarr, etc.)
+# Contains: Movies, TV shows, music
+#
+# TrueNAS: 192.168.20.160
+# Share:   /mnt/tank/media
+#
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: truenas-media
+spec:
+  storageClassName: truenas-media
+  capacity:
+    storage: 50Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 192.168.20.160
+    path: /mnt/tank/media
+  mountOptions:
+    - nfsvers=4.1
+    - nconnect=8
+    - hard
+    - noatime
