@@ -90,7 +90,7 @@ spec:
           app:
             image:
               repository: ghcr.io/home-operations/qbittorrent
-              tag: 5.1.0
+              tag: 5.1.4
             env:
               TZ: Europe/Stockholm
               # Web UI port (inside container)
