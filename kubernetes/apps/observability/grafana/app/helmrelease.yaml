@@ -1,0 +1,208 @@
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: grafana
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: grafana
+      version: "10.4.3"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      strategy: rollback
+      retries: 3
+
+  values:
+    # Single replica with Recreate strategy - safe for persistent storage.
+    # For HA, you'd need a database backend (PostgreSQL) which is overkill for homelab.
+    replicas: 1
+    deploymentStrategy:
+      type: Recreate
+
+    # ============================================================================
+    # AUTHENTICATION
+    # ============================================================================
+    # Admin credentials from 1Password via External Secrets.
+    # The secret "grafana-admin" has keys: admin-user, admin-password
+    admin:
+      existingSecret: grafana-admin
+
+    # ============================================================================
+    # GENERAL SETTINGS
+    # ============================================================================
+    env:
+      # Enable Explore tab for ad-hoc queries
+      GF_EXPLORE_ENABLED: true
+      # Use browser's locale for date/time formatting
+      GF_DATE_FORMATS_USE_BROWSER_LOCALE: true
+      # Default timezone for dashboards
+      GF_DATE_FORMATS_DEFAULT_TIMEZONE: Europe/Stockholm
+
+    grafana.ini:
+      analytics:
+        # Disable all analytics/telemetry to Grafana Labs
+        check_for_updates: false
+        check_for_plugin_updates: false
+        reporting_enabled: false
+
+    # ============================================================================
+    # DATASOURCES
+    # ============================================================================
+    # Prometheus is our only datasource - where all metrics are stored.
+    # deleteDatasources ensures clean state on each deploy (removes stale configs).
+    datasources:
+      datasources.yaml:
+        apiVersion: 1
+        deleteDatasources:
+          - { name: Prometheus, orgId: 1 }
+        datasources:
+          - name: Prometheus
+            type: prometheus
+            uid: prometheus
+            access: proxy
+            # Internal cluster DNS to Prometheus service
+            url: http://kube-prometheus-stack-prometheus.observability.svc.cluster.local:9090
+            isDefault: true
+            jsonData:
+              prometheusType: Prometheus
+
+    # ============================================================================
+    # DASHBOARD PROVIDERS
+    # ============================================================================
+    # Defines folders where dashboards are loaded from.
+    # The sidecar (below) also loads dashboards from ConfigMaps.
+    dashboardProviders:
+      dashboardproviders.yaml:
+        apiVersion: 1
+        providers:
+          - name: default
+            orgId: 1
+            folder: ""
+            type: file
+            disableDeletion: false
+            editable: true
+            options:
+              path: /var/lib/grafana/dashboards/default
+          - name: kubernetes
+            orgId: 1
+            folder: Kubernetes
+            type: file
+            disableDeletion: false
+            editable: true
+            options:
+              path: /var/lib/grafana/dashboards/kubernetes
+          - name: flux
+            orgId: 1
+            folder: Flux
+            type: file
+            disableDeletion: false
+            editable: true
+            options:
+              path: /var/lib/grafana/dashboards/flux
+
+    # ============================================================================
+    # DASHBOARDS
+    # ============================================================================
+    # Pre-configured dashboards loaded at startup.
+    # gnetId = Grafana.com dashboard ID (community dashboards)
+    # url = Direct JSON download from GitHub
+    dashboards:
+      default:
+        # Comprehensive node metrics (CPU, memory, disk, network per node)
+        # https://grafana.com/grafana/dashboards/1860
+        node-exporter-full:
+          gnetId: 1860
+          revision: 37
+          datasource: Prometheus
+        # CloudNative-PG PostgreSQL cluster monitoring
+        # https://grafana.com/grafana/dashboards/20417
+        cloudnative-pg:
+          gnetId: 20417
+          revision: 3
+          datasource: Prometheus
+
+      # Kubernetes dashboards from dotdc/grafana-dashboards-kubernetes
+      # These are high-quality, actively maintained dashboards
+      kubernetes:
+        kubernetes-api-server:
+          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-api-server.json
+          datasource: Prometheus
+        kubernetes-coredns:
+          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-coredns.json
+          datasource: Prometheus
+        kubernetes-global:
+          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-global.json
+          datasource: Prometheus
+        kubernetes-namespaces:
+          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-namespaces.json
+          datasource: Prometheus
+        kubernetes-nodes:
+          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-nodes.json
+          datasource: Prometheus
+        kubernetes-pods:
+          url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-pods.json
+          datasource: Prometheus
+
+      # Flux CD dashboards from the official monitoring example
+      flux:
+        flux-cluster:
+          url: https://raw.githubusercontent.com/fluxcd/flux2-monitoring-example/main/monitoring/configs/dashboards/cluster.json
+          datasource: Prometheus
+        flux-control-plane:
+          url: https://raw.githubusercontent.com/fluxcd/flux2-monitoring-example/main/monitoring/configs/dashboards/control-plane.json
+          datasource: Prometheus
+
+    # ============================================================================
+    # SIDECAR
+    # ============================================================================
+    # The sidecar container watches for ConfigMaps with specific labels and
+    # automatically loads them as dashboards or datasources. This is how
+    # kube-prometheus-stack dashboards get loaded (it creates ConfigMaps with
+    # the grafana_dashboard label).
+    sidecar:
+      dashboards:
+        enabled: true
+        # Search all namespaces for dashboard ConfigMaps
+        searchNamespace: ALL
+        labelValue: ""
+        # ConfigMaps with this label will be loaded as dashboards
+        label: grafana_dashboard
+        # Use this annotation to specify which folder the dashboard goes in
+        folderAnnotation: grafana_folder
+        provider:
+          disableDelete: true
+          foldersFromFilesStructure: true
+      datasources:
+        enabled: true
+        searchNamespace: ALL
+        labelValue: ""
+
+    # ============================================================================
+    # STORAGE
+    # ============================================================================
+    # Persistent storage for Grafana's SQLite database (users, dashboards, etc.)
+    persistence:
+      enabled: true
+      storageClassName: ceph-block
+      size: 10Gi
+
+    # ============================================================================
+    # MONITORING
+    # ============================================================================
+    # Expose Grafana's own metrics to Prometheus
+    serviceMonitor:
+      enabled: true
+
+    # Disable Helm test pods
+    testFramework:
+      enabled: false
