@@ -9,3 +9,4 @@ components:
 resources:
   - ./namespace.yaml
   - ./ceph-rbd-csi/ks.yaml
+  - ./truenas-nfs/ks.yaml
