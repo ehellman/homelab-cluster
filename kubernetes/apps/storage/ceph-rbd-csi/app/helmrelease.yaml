@@ -8,7 +8,7 @@ spec:
   chart:
     spec:
       chart: ceph-csi-rbd
-      version: "3.13.0"
+      version: "3.15.1"
       sourceRef:
         kind: HelmRepository
         name: ceph-csi
@@ -32,6 +32,6 @@ spec:
     provisioner:
       replicaCount: 2
     storageClass:
-      create: false  # We'll create our own
+      create: false # We'll create our own
     secret:
-      create: false  # We'll use ExternalSecret
+      create: false # We'll use ExternalSecret
