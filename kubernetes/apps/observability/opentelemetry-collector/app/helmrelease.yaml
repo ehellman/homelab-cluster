@@ -1,0 +1,161 @@
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+#
+# OpenTelemetry Collector - Unified telemetry collection pipeline
+#
+# This collector runs as a DaemonSet (one pod per node) and can receive:
+#   - Metrics, traces, and logs via OTLP protocol (gRPC or HTTP)
+#   - Host metrics (CPU, memory, disk) from the node itself
+#   - Kubelet metrics (container stats)
+#
+# Currently configured to:
+#   - Forward metrics to Prometheus (via remote-write)
+#   - Log traces and logs (debug exporter) - add Tempo/Loki for real storage
+#
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: opentelemetry-collector
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: opentelemetry-collector
+      version: "0.142.1"
+      sourceRef:
+        kind: HelmRepository
+        name: opentelemetry
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      strategy: rollback
+      retries: 3
+
+  values:
+    # ============================================================================
+    # DEPLOYMENT MODE
+    # ============================================================================
+    # DaemonSet: Runs one collector pod per node
+    # - Apps can send to localhost (fast, no network hop)
+    # - Can collect host-level metrics directly
+    # - Good for high-volume telemetry
+    #
+    # Alternatives:
+    # - deployment: Single collector for the cluster (simpler, less resources)
+    # - statefulset: When you need persistent queues
+    mode: daemonset
+
+    # ============================================================================
+    # IMAGE
+    # ============================================================================
+    # Using the Kubernetes distribution which includes:
+    # - k8sattributesprocessor (adds pod/node metadata)
+    # - kubeletstatsreceiver (container metrics)
+    # - Other Kubernetes-specific components
+    image:
+      repository: otel/opentelemetry-collector-k8s
+
+    # ============================================================================
+    # PRESETS
+    # ============================================================================
+    # These enable pre-configured receivers and processors for common use cases.
+    presets:
+      # Adds Kubernetes metadata (pod name, namespace, node) to all telemetry
+      kubernetesAttributes:
+        enabled: true
+      # Collects metrics from kubelet (container CPU, memory, etc.)
+      kubeletMetrics:
+        enabled: true
+      # Collects host metrics (node CPU, memory, disk, network)
+      hostMetrics:
+        enabled: true
+
+    # ============================================================================
+    # COLLECTOR CONFIGURATION
+    # ============================================================================
+    # This is the OpenTelemetry Collector configuration.
+    # It defines: receivers -> processors -> exporters (pipelines)
+    config:
+      # --------------------------------------------------------------------------
+      # RECEIVERS - How data enters the collector
+      # --------------------------------------------------------------------------
+      receivers:
+        # OTLP receiver - the standard way apps send telemetry
+        # Apps should send to:
+        #   - gRPC: opentelemetry-collector.observability:4317
+        #   - HTTP: opentelemetry-collector.observability:4318
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+
+      # --------------------------------------------------------------------------
+      # PROCESSORS - Transform/filter data in flight
+      # --------------------------------------------------------------------------
+      processors:
+        # Batch data before exporting (more efficient network usage)
+        batch:
+          timeout: 10s
+        # Prevent OOM by dropping data when memory pressure is high
+        memory_limiter:
+          check_interval: 1s
+          limit_mib: 512
+          spike_limit_mib: 128
+
+      # --------------------------------------------------------------------------
+      # EXPORTERS - Where data is sent
+      # --------------------------------------------------------------------------
+      exporters:
+        # Send metrics to Prometheus using remote-write API
+        # This pushes metrics to Prometheus (vs Prometheus scraping)
+        prometheusremotewrite:
+          endpoint: http://kube-prometheus-stack-prometheus.observability.svc.cluster.local:9090/api/v1/write
+        # Debug exporter - logs telemetry data (useful for development)
+        # TODO: Replace with real exporters:
+        #   - Traces: otlphttp exporter to Tempo
+        #   - Logs: loki exporter to Loki
+        debug:
+          verbosity: basic
+
+      # --------------------------------------------------------------------------
+      # PIPELINES - Wire receivers -> processors -> exporters
+      # --------------------------------------------------------------------------
+      service:
+        pipelines:
+          # Metrics: OTLP in -> process -> Prometheus out
+          metrics:
+            receivers: [otlp]
+            processors: [memory_limiter, batch]
+            exporters: [prometheusremotewrite]
+          # Traces: OTLP in -> process -> debug log (add Tempo later)
+          traces:
+            receivers: [otlp]
+            processors: [memory_limiter, batch]
+            exporters: [debug]
+          # Logs: OTLP in -> process -> debug log (add Loki later)
+          logs:
+            receivers: [otlp]
+            processors: [memory_limiter, batch]
+            exporters: [debug]
+
+    # ============================================================================
+    # RESOURCES
+    # ============================================================================
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 512Mi
+
+    # ============================================================================
+    # MONITORING
+    # ============================================================================
+    # Expose collector's own metrics to Prometheus
+    serviceMonitor:
+      enabled: true

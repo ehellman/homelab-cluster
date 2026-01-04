@@ -1,0 +1,146 @@
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: "80.10.0"
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+  # CRD handling: Create if missing, Replace if exists (for upgrades)
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    crds: CreateReplace
+    remediation:
+      strategy: rollback
+      retries: 3
+
+  values:
+    crds:
+      enabled: true
+    # Use cleaner names without random suffixes (e.g., "prometheus" not "prometheus-kube-prometheus-stack")
+    cleanPrometheusOperatorObjectNames: true
+
+    # ============================================================================
+    # GRAFANA
+    # ============================================================================
+    # Disabled here - we deploy Grafana separately for more control and independent upgrades.
+    # forceDeployDashboards: still creates ConfigMaps with dashboards that Grafana's
+    # sidecar will pick up automatically.
+    grafana:
+      enabled: false
+      forceDeployDashboards: true
+
+    # ============================================================================
+    # ALERTMANAGER
+    # ============================================================================
+    # Handles alert routing and notifications (email, Slack, PagerDuty, etc.)
+    # 2 replicas for HA - they form a cluster and deduplicate alerts.
+    alertmanager:
+      enabled: true
+      alertmanagerSpec:
+        replicas: 2
+        # Persistent storage for silences and notification state
+        storage:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: ceph-block
+              resources:
+                requests:
+                  storage: 1Gi
+
+    # ============================================================================
+    # PROMETHEUS
+    # ============================================================================
+    # Time-series database that scrapes and stores metrics.
+    # 2 replicas for HA - each scrapes independently (no data loss if one fails).
+    prometheus:
+      enabled: true
+      prometheusSpec:
+        replicas: 2
+        # How long to keep data (whichever limit is hit first wins)
+        retention: 14d
+        retentionSize: 45GB
+        # Compress write-ahead log to save disk space
+        walCompression: true
+        # Enable admin API for snapshots, deleting series, etc.
+        enableAdminAPI: true
+
+        # IMPORTANT: These settings make Prometheus discover ALL ServiceMonitors,
+        # PodMonitors, ProbeConfigs, and ScrapeConfigs cluster-wide, not just
+        # ones labeled for this specific helm release. This is what you want
+        # for a cluster-wide monitoring setup.
+        ruleSelectorNilUsesHelmValues: false
+        serviceMonitorSelectorNilUsesHelmValues: false
+        podMonitorSelectorNilUsesHelmValues: false
+        probeSelectorNilUsesHelmValues: false
+        scrapeConfigSelectorNilUsesHelmValues: false
+
+        # Persistent storage for metrics data
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: ceph-block
+              resources:
+                requests:
+                  storage: 50Gi
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+
+    # ============================================================================
+    # EXPORTERS
+    # ============================================================================
+    # node-exporter: Runs on every node, exposes hardware/OS metrics
+    # (CPU, memory, disk, network, filesystem)
+    nodeExporter:
+      enabled: true
+    prometheus-node-exporter:
+      prometheus:
+        monitor:
+          enabled: true
+
+    # kube-state-metrics: Exposes Kubernetes object state as metrics
+    # (pod status, deployment replicas, node conditions, etc.)
+    kubeStateMetrics:
+      enabled: true
+    kube-state-metrics:
+      prometheus:
+        monitor:
+          enabled: true
+
+    # ============================================================================
+    # KUBERNETES COMPONENT MONITORING
+    # ============================================================================
+    # These scrape metrics from Kubernetes control plane components.
+    # Note: Some may need extra config depending on your cluster setup.
+    kubeApiServer:
+      enabled: true
+    kubeControllerManager:
+      enabled: true
+    kubeScheduler:
+      enabled: true
+    kubeEtcd:
+      enabled: true
+    kubelet:
+      enabled: true
+    coreDns:
+      enabled: true
+
+    # Disabled: We use Cilium with eBPF which replaces kube-proxy entirely.
+    # No kube-proxy pods are running, so nothing to scrape.
+    kubeProxy:
+      enabled: false
