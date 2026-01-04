@@ -51,12 +51,10 @@ spec:
     # ============================================================================
     # IMAGE
     # ============================================================================
-    # Using the Kubernetes distribution which includes:
-    # - k8sattributesprocessor (adds pod/node metadata)
-    # - kubeletstatsreceiver (container metrics)
-    # - Other Kubernetes-specific components
+    # Using the contrib distribution which includes all exporters and receivers.
+    # The k8s distro is lighter but lacks prometheusremotewrite exporter.
     image:
-      repository: otel/opentelemetry-collector-k8s
+      repository: otel/opentelemetry-collector-contrib
 
     # ============================================================================
     # PRESETS
