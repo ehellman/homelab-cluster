@@ -1,0 +1,40 @@
+# PVC for qBittorrent config (stored on Ceph for persistence)
+# Torrents are stored on TrueNAS NFS, this is just for app config/state.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-config
+spec:
+  storageClassName: ceph-block
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# PVC for torrent downloads (TrueNAS NFS)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-downloads
+spec:
+  storageClassName: truenas-torrent
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Ti
+---
+# PVC for media library (TrueNAS NFS) - for hardlinking completed downloads
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-media
+spec:
+  storageClassName: truenas-media
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Ti
