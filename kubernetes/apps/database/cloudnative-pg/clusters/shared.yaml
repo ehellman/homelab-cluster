@@ -1,0 +1,36 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-shared
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+  primaryUpdateStrategy: unsupervised
+
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: postgres-shared-superuser
+
+  postgresql:
+    parameters:
+      timezone: "Europe/Stockholm"
+      log_timezone: "Europe/Stockholm"
+
+  storage:
+    size: 20Gi
+    storageClass: ceph-block
+
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 2Gi
+
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+
+  monitoring:
+    enablePodMonitor: true
