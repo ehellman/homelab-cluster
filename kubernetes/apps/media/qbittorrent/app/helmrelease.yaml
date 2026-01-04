@@ -1,0 +1,179 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+#
+# qBittorrent with Gluetun VPN sidecar
+#
+# All torrent traffic is routed through the VPN (gluetun).
+# VPN credentials are stored in 1Password under "qbittorrent-vpn".
+#
+# Access: https://qbittorrent.${SECRET_DOMAIN} (internal only)
+#
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: qbittorrent
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: qbittorrent
+  interval: 1h
+  values:
+    # =========================================================================
+    # CONTROLLERS
+    # =========================================================================
+    controllers:
+      qbittorrent:
+        annotations:
+          # Auto-restart when secrets change
+          reloader.stakater.com/auto: "true"
+
+        # -----------------------------------------------------------------------
+        # Init container: Set up gluetun VPN tunnel first
+        # -----------------------------------------------------------------------
+        initContainers:
+          gluetun:
+            image:
+              repository: ghcr.io/qdm12/gluetun
+              tag: v3.40.0
+            # Run as sidecar (keeps running after init)
+            restartPolicy: Always
+            envFrom:
+              - secretRef:
+                  name: qbittorrent-vpn
+            env:
+              # Gluetun settings
+              VPN_TYPE: openvpn
+              # Enable PIA port forwarding for better peer connectivity
+              VPN_PORT_FORWARDING: "on"
+              # Allow qBittorrent web UI, health check, and torrent port
+              FIREWALL_INPUT_PORTS: "80,9999,50413"
+              # Health check endpoint - must listen on all interfaces for k8s probes
+              HEALTH_SERVER_ADDRESS: ":9999"
+              HEALTH_VPN_DURATION_INITIAL: 30s
+              # Use PIA's DNS (IPv4 only, stays in VPN tunnel)
+              DOT: "off"
+              DNS_ADDRESS: "10.0.0.241"
+            # Gluetun needs root for iptables/networking
+            securityContext:
+              runAsUser: 0
+              runAsGroup: 0
+              runAsNonRoot: false
+              capabilities:
+                add:
+                  - NET_ADMIN
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: 9999
+                  initialDelaySeconds: 30
+                  periodSeconds: 30
+                  failureThreshold: 5
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: 9999
+                  initialDelaySeconds: 10
+                  periodSeconds: 5
+                  failureThreshold: 30
+
+        # -----------------------------------------------------------------------
+        # Main container: qBittorrent
+        # -----------------------------------------------------------------------
+        containers:
+          app:
+            image:
+              repository: ghcr.io/home-operations/qbittorrent
+              tag: 5.1.0
+            env:
+              TZ: Europe/Stockholm
+              # Web UI port (inside container)
+              QBT_WEBUI_PORT: &port 80
+              # Torrenting port (opened through VPN)
+              QBT_TORRENTING_PORT: &torrentPort 50413
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: *port
+                  initialDelaySeconds: 30
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: *port
+                  initialDelaySeconds: 10
+                  periodSeconds: 10
+                  failureThreshold: 30
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                memory: 4Gi
+
+    # =========================================================================
+    # POD OPTIONS
+    # =========================================================================
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+
+    # =========================================================================
+    # SERVICE
+    # =========================================================================
+    service:
+      app:
+        controller: qbittorrent
+        ports:
+          http:
+            port: *port
+
+    # =========================================================================
+    # PERSISTENCE
+    # =========================================================================
+    persistence:
+      # qBittorrent config (Ceph block storage)
+      config:
+        existingClaim: qbittorrent-config
+        globalMounts:
+          - path: /config
+
+      # Torrent downloads (TrueNAS NFS)
+      downloads:
+        existingClaim: qbittorrent-downloads
+        globalMounts:
+          - path: /downloads
+
+      # Media library (TrueNAS NFS) - for hardlinking completed downloads
+      media:
+        existingClaim: qbittorrent-media
+        globalMounts:
+          - path: /media
+
+      # Gluetun shared data (for port forwarding)
+      gluetun-data:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp/gluetun
