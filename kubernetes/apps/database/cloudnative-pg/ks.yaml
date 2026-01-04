@@ -18,3 +18,29 @@ spec:
   wait: true
   interval: 30m
   timeout: 10m
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &clusters cloudnative-pg-clusters
+  namespace: flux-system
+spec:
+  targetNamespace: database
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *clusters
+  dependsOn:
+    - name: cloudnative-pg
+    - name: external-secrets
+      namespace: external-secrets
+    - name: onepassword-connect
+      namespace: external-secrets
+  path: ./kubernetes/apps/database/cloudnative-pg/clusters
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+    namespace: flux-system
+  wait: true
+  interval: 30m
+  timeout: 10m
