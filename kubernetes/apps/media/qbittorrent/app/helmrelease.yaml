@@ -160,13 +160,8 @@ spec:
         globalMounts:
           - path: /config
 
-      # Torrent downloads (TrueNAS NFS)
-      downloads:
-        existingClaim: qbittorrent-downloads
-        globalMounts:
-          - path: /downloads
-
-      # Media library (TrueNAS NFS) - for hardlinking completed downloads
+      # Media library (TrueNAS NFS) - single mount for hardlink support
+      # Downloads go to /media/downloads, Sonarr/Radarr import to /media/tv and /media/movies
       media:
         existingClaim: qbittorrent-media
         globalMounts:
