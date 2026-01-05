@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+#
+# FlareSolverr - Cloudflare bypass proxy for Prowlarr
+#
+# Runs a headless browser to solve Cloudflare challenges.
+# No persistent storage needed - stateless service.
+#
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: flaresolverr
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: flaresolverr
+  interval: 1h
+  values:
+    # =========================================================================
+    # CONTROLLERS
+    # =========================================================================
+    controllers:
+      flaresolverr:
+        containers:
+          app:
+            image:
+              repository: ghcr.io/flaresolverr/flaresolverr
+              tag: v3.4.6
+            env:
+              TZ: Europe/Stockholm
+              LOG_LEVEL: info
+            probes:
+              liveness:
+                enabled: true
+              readiness:
+                enabled: true
+              startup:
+                enabled: true
+                spec:
+                  initialDelaySeconds: 10
+                  failureThreshold: 30
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 10m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+
+    # =========================================================================
+    # SERVICE
+    # =========================================================================
+    service:
+      app:
+        controller: flaresolverr
+        ports:
+          http:
+            port: 8191
