@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+#
+# Radarr - Movie automation
+#
+# Monitors for movies, searches via Prowlarr, downloads via qBittorrent,
+# and organizes files into your media library.
+#
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app radarr
+  namespace: flux-system
+spec:
+  targetNamespace: media
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: *app
+  dependsOn:
+    - name: external-secrets
+      namespace: external-secrets
+    - name: onepassword-connect
+      namespace: external-secrets
+    - name: truenas-nfs
+      namespace: storage
+  path: ./kubernetes/apps/media/radarr/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+    namespace: flux-system
+  wait: true
+  interval: 30m
+  timeout: 15m
+  postBuild:
+    substituteFrom:
+      - name: cluster-secrets
+        kind: Secret

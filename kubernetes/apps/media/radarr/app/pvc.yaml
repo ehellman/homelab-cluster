@@ -1,0 +1,14 @@
+# PVC for Radarr config (stored on Ceph for persistence)
+# Media and downloads PVCs are shared with qBittorrent
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: radarr-config
+spec:
+  storageClassName: ceph-block
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
