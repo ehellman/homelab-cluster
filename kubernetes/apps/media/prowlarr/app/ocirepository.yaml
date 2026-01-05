@@ -2,12 +2,12 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
-  name: k8s-gateway
+  name: prowlarr
 spec:
-  interval: 1h
+  interval: 15m
   layerSelector:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
   ref:
-    tag: 3.4.0
-  url: oci://ghcr.io/k8s-gateway/charts/k8s-gateway
+    tag: 4.5.0
+  url: oci://ghcr.io/bjw-s-labs/helm/app-template
