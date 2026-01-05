@@ -1,0 +1,110 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+#
+# Prowlarr - Indexer manager for the *arr stack
+#
+# Aggregates torrent/usenet indexers and syncs them automatically to Sonarr/Radarr.
+# No VPN required - only makes API calls, doesn't download content.
+#
+# Access: https://prowlarr.${SECRET_DOMAIN} (internal only)
+#
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: prowlarr
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: prowlarr
+  interval: 1h
+  values:
+    # =========================================================================
+    # CONTROLLERS
+    # =========================================================================
+    controllers:
+      prowlarr:
+        annotations:
+          reloader.stakater.com/auto: "true"
+
+        containers:
+          app:
+            image:
+              repository: ghcr.io/home-operations/prowlarr
+              tag: 1.33.4
+            env:
+              TZ: Europe/Stockholm
+              PROWLARR__APP__INSTANCENAME: Prowlarr
+              PROWLARR__AUTH__METHOD: External
+              PROWLARR__AUTH__REQUIRED: DisabledForLocalAddresses
+              PROWLARR__LOG__LEVEL: info
+              PROWLARR__SERVER__PORT: &port 80
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ping
+                    port: *port
+                  initialDelaySeconds: 15
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ping
+                    port: *port
+                  initialDelaySeconds: 5
+                  periodSeconds: 5
+                  failureThreshold: 30
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 10m
+                memory: 128Mi
+              limits:
+                memory: 512Mi
+
+    # =========================================================================
+    # POD OPTIONS
+    # =========================================================================
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+
+    # =========================================================================
+    # SERVICE
+    # =========================================================================
+    service:
+      app:
+        controller: prowlarr
+        ports:
+          http:
+            port: *port
+
+    # =========================================================================
+    # PERSISTENCE
+    # =========================================================================
+    persistence:
+      # Prowlarr config (Ceph block storage)
+      config:
+        existingClaim: prowlarr-config
+        globalMounts:
+          - path: /config
+
+      # Temp directory for read-only root filesystem
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
