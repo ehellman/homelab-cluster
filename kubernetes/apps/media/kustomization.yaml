@@ -8,4 +8,5 @@ components:
 
 resources:
   - ./namespace.yaml
+  - ./prowlarr/ks.yaml
   - ./qbittorrent/ks.yaml
