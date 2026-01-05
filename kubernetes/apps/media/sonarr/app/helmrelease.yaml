@@ -1,0 +1,122 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+#
+# Sonarr - TV show automation
+#
+# Monitors for new TV episodes, searches via Prowlarr, downloads via qBittorrent,
+# and organizes files into your media library.
+#
+# Access: https://sonarr.${SECRET_DOMAIN} (internal only)
+#
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: sonarr
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: sonarr
+  interval: 1h
+  values:
+    # =========================================================================
+    # CONTROLLERS
+    # =========================================================================
+    controllers:
+      sonarr:
+        annotations:
+          reloader.stakater.com/auto: "true"
+
+        containers:
+          app:
+            image:
+              repository: ghcr.io/home-operations/sonarr
+              tag: 4.0.16.2946
+            env:
+              TZ: Europe/Stockholm
+              SONARR__APP__INSTANCENAME: Sonarr
+              SONARR__AUTH__METHOD: External
+              SONARR__AUTH__REQUIRED: DisabledForLocalAddresses
+              SONARR__LOG__LEVEL: info
+              SONARR__SERVER__PORT: &port 80
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ping
+                    port: *port
+                  initialDelaySeconds: 15
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ping
+                    port: *port
+                  initialDelaySeconds: 5
+                  periodSeconds: 5
+                  failureThreshold: 30
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 10m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+
+    # =========================================================================
+    # POD OPTIONS
+    # =========================================================================
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+
+    # =========================================================================
+    # SERVICE
+    # =========================================================================
+    service:
+      app:
+        controller: sonarr
+        ports:
+          http:
+            port: *port
+
+    # =========================================================================
+    # PERSISTENCE
+    # =========================================================================
+    persistence:
+      # Sonarr config (Ceph block storage)
+      config:
+        existingClaim: sonarr-config
+        globalMounts:
+          - path: /config
+
+      # Temp directory for read-only root filesystem
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
+
+      # Media library (TrueNAS NFS) - shared with all media apps
+      media:
+        existingClaim: qbittorrent-media
+        globalMounts:
+          - path: /media
+
+      # Downloads (TrueNAS NFS) - shared with qBittorrent
+      downloads:
+        existingClaim: qbittorrent-downloads
+        globalMounts:
+          - path: /downloads
