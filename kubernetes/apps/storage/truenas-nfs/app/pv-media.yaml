@@ -3,8 +3,8 @@
 # Used by: Plex, Jellyfin, *arr apps (Sonarr, Radarr, etc.)
 # Contains: Movies, TV shows, music
 #
-# TrueNAS: 192.168.20.160
-# Share:   /mnt/tank/media
+# TrueNAS NFS share for media library
+# Share: /mnt/tank/media
 #
 ---
 apiVersion: v1
@@ -19,7 +19,7 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   nfs:
-    server: 192.168.20.160
+    server: "${SECRET_NAS_IP}"
     path: /mnt/tank/media
   mountOptions:
     - nfsvers=4.1
