@@ -28,7 +28,8 @@ spec:
       owner: immich
       secret:
         name: postgres-immich-user
-      postInitSQL:
+      # Runs as superuser in the application database (immich)
+      postInitApplicationSQL:
         - CREATE EXTENSION IF NOT EXISTS vector;
         - CREATE EXTENSION IF NOT EXISTS vchord CASCADE;
         - CREATE EXTENSION IF NOT EXISTS earthdistance CASCADE;
