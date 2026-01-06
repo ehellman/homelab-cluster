@@ -1,0 +1,53 @@
+# PostgreSQL cluster for Immich with pgvecto.rs extension
+# Required for Immich's ML-based image search features
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-immich
+spec:
+  instances: 2
+  # Immich requires pgvecto.rs extension - use tensorchord image
+  imageName: ghcr.io/tensorchord/cloudnative-pgvecto.rs:17-v0.4.0
+  primaryUpdateStrategy: unsupervised
+
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: postgres-immich-superuser
+
+  postgresql:
+    parameters:
+      timezone: "Europe/Stockholm"
+      log_timezone: "Europe/Stockholm"
+      search_path: '"$user", public, vectors'
+    shared_preload_libraries:
+      - vectors.so
+
+  bootstrap:
+    initdb:
+      database: immich
+      owner: immich
+      secret:
+        name: postgres-immich-user
+      # Owner name must match secret username
+      postInitSQL:
+        - CREATE EXTENSION IF NOT EXISTS vectors;
+        - CREATE EXTENSION IF NOT EXISTS earthdistance CASCADE;
+
+  storage:
+    size: 10Gi
+    storageClass: ceph-block
+
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 100m
+    limits:
+      memory: 2Gi
+
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+
+  monitoring:
+    enablePodMonitor: true

@@ -1,0 +1,14 @@
+# Immich photo library (TrueNAS NFS)
+# Update the NFS PV path in storage/truenas-nfs/app/pv-photos.yaml
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-library
+spec:
+  storageClassName: truenas-photos
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Ti
