@@ -1,5 +1,5 @@
-# PostgreSQL cluster for Immich with pgvecto.rs extension
-# Required for Immich's ML-based image search features
+# PostgreSQL cluster for Immich with VectorChord extension
+# Required for Immich's ML-based smart search and facial recognition
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -7,9 +7,8 @@ metadata:
   name: postgres-immich
 spec:
   instances: 2
-  # Immich requires pgvecto.rs extension - use tensorchord image
-  # Immich v1.124.2 requires pgvecto.rs >=0.2 <0.4
-  imageName: ghcr.io/tensorchord/cloudnative-pgvecto.rs:16.5-v0.3.0
+  # Immich v2.x requires VectorChord >=0.3 <0.6
+  imageName: ghcr.io/tensorchord/cloudnative-vectorchord:16-0.5.3
   primaryUpdateStrategy: unsupervised
 
   enableSuperuserAccess: true
@@ -20,9 +19,8 @@ spec:
     parameters:
       timezone: "Europe/Stockholm"
       log_timezone: "Europe/Stockholm"
-      search_path: '"$user", public, vectors'
     shared_preload_libraries:
-      - vectors.so
+      - vchord.so
 
   bootstrap:
     initdb:
@@ -30,9 +28,9 @@ spec:
       owner: immich
       secret:
         name: postgres-immich-user
-      # Owner name must match secret username
       postInitSQL:
-        - CREATE EXTENSION IF NOT EXISTS vectors;
+        - CREATE EXTENSION IF NOT EXISTS vector;
+        - CREATE EXTENSION IF NOT EXISTS vchord CASCADE;
         - CREATE EXTENSION IF NOT EXISTS earthdistance CASCADE;
 
   storage:
