@@ -1,0 +1,178 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+#
+# Immich - Self-hosted photo and video backup
+#
+# Components:
+# - Server: Main API and web interface
+# - Machine Learning: Face recognition, object detection, smart search
+#
+# Uses shared Redis in database namespace (DB index 0)
+#
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: immich
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: immich
+  interval: 1h
+  values:
+    # =========================================================================
+    # CONTROLLERS
+    # =========================================================================
+    controllers:
+      # -----------------------------------------------------------------------
+      # Immich Server
+      # -----------------------------------------------------------------------
+      server:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: ghcr.io/immich-app/immich-server
+              tag: v1.124.2
+            envFrom:
+              - secretRef:
+                  name: immich-secret
+            env:
+              TZ: Europe/Stockholm
+              IMMICH_SERVER_URL: http://immich-server.media.svc.cluster.local:2283
+              IMMICH_MACHINE_LEARNING_URL: http://immich-machine-learning.media.svc.cluster.local:3003
+              LOG_LEVEL: log
+            probes:
+              liveness: &serverProbes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/server/ping
+                    port: &serverPort 2283
+                  initialDelaySeconds: 30
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *serverProbes
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/server/ping
+                    port: *serverPort
+                  initialDelaySeconds: 10
+                  periodSeconds: 5
+                  failureThreshold: 30
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                memory: 2Gi
+
+      # -----------------------------------------------------------------------
+      # Machine Learning
+      # -----------------------------------------------------------------------
+      machine-learning:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: ghcr.io/immich-app/immich-machine-learning
+              tag: v1.124.2
+            env:
+              TZ: Europe/Stockholm
+              IMMICH_HOST: 0.0.0.0
+              IMMICH_PORT: &mlPort 3003
+              MACHINE_LEARNING_CACHE_FOLDER: /cache
+              TRANSFORMERS_CACHE: /cache
+            probes:
+              liveness: &mlProbes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ping
+                    port: *mlPort
+                  initialDelaySeconds: 60
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *mlProbes
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ping
+                    port: *mlPort
+                  initialDelaySeconds: 30
+                  periodSeconds: 10
+                  failureThreshold: 30
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 100m
+                memory: 512Mi
+              limits:
+                memory: 4Gi
+
+    # =========================================================================
+    # POD OPTIONS
+    # =========================================================================
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 568
+        runAsGroup: 568
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
+
+    # =========================================================================
+    # SERVICES
+    # =========================================================================
+    service:
+      server:
+        controller: server
+        ports:
+          http:
+            port: *serverPort
+      machine-learning:
+        controller: machine-learning
+        ports:
+          http:
+            port: *mlPort
+
+    # =========================================================================
+    # PERSISTENCE
+    # =========================================================================
+    persistence:
+      # Photo/video library (TrueNAS NFS)
+      library:
+        existingClaim: immich-library
+        globalMounts:
+          - path: /usr/src/app/upload
+
+      # ML model cache
+      ml-cache:
+        type: emptyDir
+        advancedMounts:
+          machine-learning:
+            app:
+              - path: /cache
+
+      # Temp directories for read-only root filesystem
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
