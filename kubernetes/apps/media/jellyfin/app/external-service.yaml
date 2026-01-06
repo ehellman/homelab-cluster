@@ -1,0 +1,24 @@
+# External service pointing to Jellyfin running outside the cluster
+# This allows exposing external services via the cluster's ingress
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jellyfin
+spec:
+  ports:
+    - name: http
+      port: 8096
+      targetPort: 8096
+---
+# Manual endpoints - must have same name as Service
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: jellyfin
+subsets:
+  - addresses:
+      - ip: 192.168.40.101
+    ports:
+      - name: http
+        port: 8096
