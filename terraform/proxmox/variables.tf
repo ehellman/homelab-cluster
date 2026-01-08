@@ -124,7 +124,7 @@ variable "worker_nodes" {
     name         = string
     ip_address   = string
     proxmox_node = string
-    vcpus        = optional(number, 12)
+    vcpus        = optional(number, 8)
     memory       = optional(number, 40960)  # 40GB
     disk_size    = optional(number, 50)     # Small - Ceph for persistent storage
     ha_enabled   = optional(bool, false)
