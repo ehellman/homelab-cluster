@@ -80,7 +80,8 @@ nodes:
     installDisk: "/dev/sda"
     machineSpec:
       secureboot: false
-    talosImageURL: factory.talos.dev/installer/88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b
+    # Includes i915-ucode and intel-ucode for Quick Sync GPU passthrough
+    talosImageURL: factory.talos.dev/installer/eed1860a28ccc6fdb77f1f41ab0ae2a20c19bc6101618d416d5d72ec919bf679
     controlPlane: false
     networkInterfaces:
       - deviceSelector:
@@ -97,7 +98,8 @@ nodes:
     installDisk: "/dev/sda"
     machineSpec:
       secureboot: false
-    talosImageURL: factory.talos.dev/installer/88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b
+    # Includes i915-ucode and intel-ucode for Quick Sync GPU passthrough
+    talosImageURL: factory.talos.dev/installer/eed1860a28ccc6fdb77f1f41ab0ae2a20c19bc6101618d416d5d72ec919bf679
     controlPlane: false
     networkInterfaces:
       - deviceSelector:
@@ -114,7 +116,8 @@ nodes:
     installDisk: "/dev/sda"
     machineSpec:
       secureboot: false
-    talosImageURL: factory.talos.dev/installer/88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b
+    # Includes i915-ucode and intel-ucode for Quick Sync GPU passthrough
+    talosImageURL: factory.talos.dev/installer/eed1860a28ccc6fdb77f1f41ab0ae2a20c19bc6101618d416d5d72ec919bf679
     controlPlane: false
     networkInterfaces:
       - deviceSelector:
