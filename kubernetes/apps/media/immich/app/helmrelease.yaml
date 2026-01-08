@@ -68,15 +68,18 @@ spec:
                   initialDelaySeconds: 10
                   periodSeconds: 5
                   failureThreshold: 30
-            # TODO: Remove privileged after confirming GPU works
             securityContext:
-              privileged: true
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"] }
             resources:
               requests:
                 cpu: 100m
                 memory: 512Mi
+                gpu.intel.com/i915: "1"
               limits:
                 memory: 4Gi
+                gpu.intel.com/i915: "1"
 
       # -----------------------------------------------------------------------
       # Machine Learning
@@ -189,12 +192,3 @@ spec:
         type: emptyDir
         globalMounts:
           - path: /tmp
-
-      # Intel Quick Sync GPU access for hardware transcoding
-      dri:
-        type: hostPath
-        hostPath: /dev/dri
-        advancedMounts:
-          server:
-            app:
-              - path: /dev/dri
