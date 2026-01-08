@@ -93,6 +93,7 @@ spec:
               IMMICH_PORT: &mlPort 3003
               MACHINE_LEARNING_CACHE_FOLDER: /cache
               TRANSFORMERS_CACHE: /cache
+              HF_HOME: /cache
             probes:
               liveness: &mlProbes
                 enabled: true
