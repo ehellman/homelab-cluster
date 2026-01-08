@@ -135,7 +135,7 @@ spec:
     initialStreamWindowSize: 16Mi
     initialConnectionWindowSize: 24Mi
     onInvalidMessage: TerminateStream
-  http3: {}
+  # HTTP/3 disabled - causes iOS upload failures with Immich
   targetSelectors:
     - group: gateway.networking.k8s.io
       kind: Gateway
