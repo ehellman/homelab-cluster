@@ -29,6 +29,9 @@ spec:
       server:
         annotations:
           reloader.stakater.com/auto: "true"
+        pod:
+          nodeSelector:
+            kubernetes.io/hostname: k8s-worker-2
         containers:
           app:
             image:
