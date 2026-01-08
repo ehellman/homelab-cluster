@@ -135,7 +135,7 @@ spec:
     initialStreamWindowSize: 16Mi
     initialConnectionWindowSize: 24Mi
     onInvalidMessage: TerminateStream
-  http3: {}
+  # http3: {}  # Disabled - causing iOS upload issues with QUIC
   targetSelectors:
     - group: gateway.networking.k8s.io
       kind: Gateway
