@@ -1,0 +1,118 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+#
+# n8n - Workflow automation tool
+#
+# Self-hosted alternative to Zapier/Make with visual workflow builder,
+# 400+ integrations, and code nodes for custom logic.
+#
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: n8n
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: n8n
+  interval: 1h
+  values:
+    # =========================================================================
+    # CONTROLLERS
+    # =========================================================================
+    controllers:
+      n8n:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: ghcr.io/n8n-io/n8n
+              tag: 2.2.5
+            envFrom:
+              - secretRef:
+                  name: n8n-secret
+            env:
+              TZ: Europe/Stockholm
+              GENERIC_TIMEZONE: Europe/Stockholm
+              # Webhook URL for external triggers
+              WEBHOOK_URL: "https://n8n.${SECRET_DOMAIN}"
+              # Editor settings
+              N8N_EDITOR_BASE_URL: "https://n8n.${SECRET_DOMAIN}"
+              N8N_HOST: n8n.${SECRET_DOMAIN}
+              N8N_PORT: &port 5678
+              N8N_PROTOCOL: https
+              # Execution settings
+              EXECUTIONS_MODE: regular
+              EXECUTIONS_DATA_PRUNE: "true"
+              EXECUTIONS_DATA_MAX_AGE: "168"
+              # Disable telemetry
+              N8N_DIAGNOSTICS_ENABLED: "false"
+              N8N_PERSONALIZATION_ENABLED: "false"
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: *port
+                  initialDelaySeconds: 10
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: *port
+                  initialDelaySeconds: 10
+                  periodSeconds: 5
+                  failureThreshold: 30
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 50m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+
+    # =========================================================================
+    # POD OPTIONS
+    # =========================================================================
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+
+    # =========================================================================
+    # SERVICES
+    # =========================================================================
+    service:
+      n8n:
+        controller: n8n
+        ports:
+          http:
+            port: *port
+
+    # =========================================================================
+    # PERSISTENCE
+    # =========================================================================
+    persistence:
+      data:
+        existingClaim: n8n-data
+        globalMounts:
+          - path: /home/node/.n8n
+
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
