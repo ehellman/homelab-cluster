@@ -1,9 +1,9 @@
-# Jellyseerr config storage (Ceph block)
+# Seerr config storage (Ceph block)
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: jellyseerr-config
+  name: seerr-config
 spec:
   storageClassName: ceph-block
   accessModes:
