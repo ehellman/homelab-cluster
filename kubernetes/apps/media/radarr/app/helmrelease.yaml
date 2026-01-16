@@ -25,6 +25,7 @@ spec:
       radarr:
         annotations:
           reloader.stakater.com/auto: "true"
+          secret.reloader.stakater.com/reload: radarr-secret
 
         containers:
           app:
@@ -38,6 +39,9 @@ spec:
               RADARR__AUTH__REQUIRED: DisabledForLocalAddresses
               RADARR__LOG__LEVEL: info
               RADARR__SERVER__PORT: &port 80
+            envFrom:
+              - secretRef:
+                  name: radarr-secret
             probes:
               liveness: &probes
                 enabled: true
