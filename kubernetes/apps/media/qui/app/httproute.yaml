@@ -1,0 +1,22 @@
+# Internal access to qui web UI
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: qui-internal
+spec:
+  hostnames:
+    - "qui.${SECRET_DOMAIN}"
+  parentRefs:
+    - kind: Gateway
+      name: envoy-internal
+      namespace: network
+      sectionName: https
+  rules:
+    - backendRefs:
+        - name: qui
+          port: 7476
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
