@@ -34,7 +34,7 @@ spec:
           gluetun:
             image:
               repository: ghcr.io/qdm12/gluetun
-              tag: v3.41.0
+              tag: v3.41.1
             # Run as sidecar (keeps running after init)
             restartPolicy: Always
             envFrom:
