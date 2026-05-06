@@ -1,0 +1,34 @@
+#
+# Tailscale Kubernetes Operator
+#
+# Connects the cluster to your Tailnet and exposes the K8s API server
+# for remote kubectl access via Tailscale.
+#
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tailscale-operator
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: tailscale-operator
+      version: "1.96.5"
+      sourceRef:
+        kind: HelmRepository
+        name: tailscale
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    oauth:
+      clientId: ""
+      clientSecret: ""
+    operatorConfig:
+      hostname: k8s-operator
+    apiServerProxyConfig:
+      mode: "true"
