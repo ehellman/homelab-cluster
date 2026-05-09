@@ -4,7 +4,7 @@ terraform {
   required_providers {
     proxmox = {
       source  = "bpg/proxmox"
-      version = "~> 0.105"
+      version = "~> 0.106"
     }
     macaddress = {
       source  = "ivoronin/macaddress"
