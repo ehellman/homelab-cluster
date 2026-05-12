@@ -5,4 +5,3 @@ resources:
   - ./external-secret.yaml
   - ./helmrepository.yaml
   - ./helmrelease.yaml
-  - ./clusterrolebinding.yaml
