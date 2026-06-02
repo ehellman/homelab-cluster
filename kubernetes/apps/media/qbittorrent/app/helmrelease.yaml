@@ -41,18 +41,12 @@ spec:
               - secretRef:
                   name: qbittorrent-vpn
             env:
-              # Gluetun settings
-              VPN_TYPE: openvpn
-              # Enable PIA port forwarding for better peer connectivity
-              VPN_PORT_FORWARDING: "on"
-              # Allow qBittorrent web UI, health check, and torrent port
+              VPN_TYPE: wireguard
               FIREWALL_INPUT_PORTS: "80,9999,50413"
-              # Health check endpoint - must listen on all interfaces for k8s probes
               HEALTH_SERVER_ADDRESS: ":9999"
-              HEALTH_VPN_DURATION_INITIAL: 30s
-              # Use PIA's DNS (IPv4 only, stays in VPN tunnel)
+              # Mullvad's non-filtering DNS — stays in VPN tunnel, won't block trackers
               DOT: "off"
-              DNS_ADDRESS: "10.0.0.241"
+              DNS_ADDRESS: "10.64.0.1"
             # Gluetun needs root for iptables/networking
             securityContext:
               runAsUser: 0
