@@ -7,15 +7,15 @@ converges from git.
 # Repository Structure
 
 ```
-kubernetes/
-  ├── apps/         # Flux-managed workloads, one dir per app
-  │     └── <namespace>/<app>/
-  │           ├── ks.yaml      # Flux Kustomization (targetNamespace, dependsOn, substituteFrom)
-  │           └── app/         # HelmRelease, ExternalSecret, HTTPRoute, kustomization.yaml
-  ├── components/   # Shared/reused Kustomize components
-  └── flux/         # Flux bootstrap + cluster-wide config (sops decryption set here)
-talos/              # Talos machine config (talhelper); SOPS full-encrypted
-bootstrap/          # Initial cluster bootstrap
+clusters/
+  ├── _shared/      # Cross-cluster content (components, base configs, policies)
+  └── homelab/      # The primary homelab cluster
+        ├── talos/        # Talos machine config (talhelper); SOPS full-encrypted
+        ├── kubernetes/   # Flux-managed workloads + config
+        │     ├── apps/         # One dir per app: <namespace>/<app>/{ks.yaml, app/}
+        │     ├── components/   # Shared/reused Kustomize components
+        │     └── flux/         # Flux bootstrap + cluster-wide config
+        └── bootstrap/    # Initial cluster bootstrap
 terraform/          # Out-of-cluster infrastructure
 .agents/skills/     # Project skills (symlinked into .claude/skills/)
 .claude/            # Agents, commands, settings

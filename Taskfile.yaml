@@ -5,12 +5,12 @@ set: [pipefail]
 shopt: [globstar]
 
 vars:
-  BOOTSTRAP_DIR: '{{.ROOT_DIR}}/bootstrap'
-  KUBERNETES_DIR: '{{.ROOT_DIR}}/kubernetes'
+  BOOTSTRAP_DIR: '{{.ROOT_DIR}}/clusters/homelab/bootstrap'
+  KUBERNETES_DIR: '{{.ROOT_DIR}}/clusters/homelab/kubernetes'
   SCRIPTS_DIR: '{{.ROOT_DIR}}/scripts'
-  TALOS_DIR: '{{.ROOT_DIR}}/talos'
+  TALOS_DIR: '{{.ROOT_DIR}}/clusters/homelab/talos'
   PRIVATE_DIR: '{{.ROOT_DIR}}/.private'
-  TALOSCONFIG: '{{.ROOT_DIR}}/talos/clusterconfig/talosconfig'
+  TALOSCONFIG: '{{.ROOT_DIR}}/clusters/homelab/talos/clusterconfig/talosconfig'
 
 env:
   KUBECONFIG: '{{.ROOT_DIR}}/kubeconfig'
