@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "flux-operator-mcp": {
+      "command": "mise",
+      "args": [
+        "exec",
+        "--",
+        "flux-operator-mcp",
+        "serve",
+        "--read-only=true"
+      ]
+    }
+  }
+}
