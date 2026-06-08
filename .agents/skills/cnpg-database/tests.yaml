@@ -1,0 +1,126 @@
+version: 1
+skill: cnpg-database
+description: "Verify CNPG cluster placement decisions, ExternalSecret credential wiring, naming conventions, and debugging commands for this homelab"
+tests:
+  - id: CNPG-01
+    description: "Chooses a dedicated cluster (custom image) for an app needing extensions"
+    category: constraint
+    severity: high
+    prompt: |
+      I'm adding a new app that needs the pgvector/vchord extension for embeddings. Should it use postgres-shared or its own cluster, and why?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["dedicated", "imageName"]
+        any_of: ["extension", "vchord", "vectorchord", "postgres-shared", "isolation"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must recommend a dedicated Cluster (not postgres-shared) because the app needs a custom
+      image bundling the extension. Should mention extensions/postInitApplicationSQL or a
+      custom imageName.
+    tags:
+      - cnpg-database-skill
+
+  - id: CNPG-02
+    description: "Provisions credentials via ExternalSecret to onepassword-connect with correct secret names"
+    category: constraint
+    severity: critical
+    prompt: |
+      Show me how to create the database credentials for a new dedicated cluster for an app called "grafana" in this repo.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["external-secrets.io/v1", "ExternalSecret", "onepassword-connect", "postgres-grafana-superuser", "postgres-grafana-user"]
+        any_of: ["postgres_grafana", "ClusterSecretStore", "remoteRef"]
+        forbidden: ["kubernetes-replicator", "secret-generator", "replicator.v1.mittwald.de", "sops"]
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must use external-secrets.io/v1 ExternalSecret against ClusterSecretStore onepassword-connect.
+      Must name secrets postgres-grafana-superuser and postgres-grafana-user. Must NOT use
+      kubernetes-replicator, secret-generator, or SOPS for these credentials.
+    tags:
+      - cnpg-database-skill
+
+  - id: CNPG-03
+    description: "Knows the namespace, operator name, and the two Flux Kustomizations"
+    category: coverage
+    severity: high
+    prompt: |
+      Where do CNPG clusters live in this repo and how does Flux apply them?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["database", "cloudnative-pg-clusters"]
+        any_of: ["./clusters", "./app", "kustomization.yaml", "dependsOn", "cloudnative-pg"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must identify the database namespace and the cloudnative-pg-clusters Kustomization
+      (./clusters), separate from the operator Kustomization (./app). Should mention
+      registering files in clusters/kustomization.yaml.
+    tags:
+      - cnpg-database-skill
+
+  - id: CNPG-04
+    description: "Wires an app to the -rw service with no pooler"
+    category: constraint
+    severity: high
+    prompt: |
+      How does an app connect to its dedicated cnpg cluster postgres-immich in this homelab? Give the host.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["postgres-immich-rw", "5432"]
+        any_of: ["database.svc", "cluster.local", "rw"]
+        forbidden: ["pgbouncer", "pooler", "platform-pooler"]
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must point the app at the postgres-immich-rw service in the database namespace on port
+      5432. Must NOT reference a PgBouncer/pooler, since this repo has none.
+    tags:
+      - cnpg-database-skill
+
+  - id: CNPG-05
+    description: "Enables PodMonitor on the Cluster and uses ceph-block storage"
+    category: coverage
+    severity: medium
+    prompt: |
+      What are the required storage class and monitoring settings on every CNPG Cluster in this repo?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["ceph-block", "enablePodMonitor"]
+        any_of: ["storageClass", "monitoring", "prometheus", "PodMonitor"]
+        forbidden: ["longhorn", "ServiceMonitor manual"]
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must state storageClass: ceph-block and monitoring.enablePodMonitor: true on each Cluster.
+      Should note kube-prometheus-stack discovers the PodMonitor automatically.
+    tags:
+      - cnpg-database-skill
+
+  - id: CNPG-06
+    description: "Provides correct debugging commands including the cnpg plugin"
+    category: coverage
+    severity: medium
+    prompt: |
+      My new postgres cluster pods are Pending in the database namespace. How do I debug?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["kubectl get cluster", "database"]
+        any_of: ["cnpg status", "get pvc", "ceph-block", "describe cluster", "externalsecret"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must suggest kubectl get cluster -n database and inspecting PVCs (ceph-block) for Pending
+      pods. Should mention kubectl cnpg status and/or checking ExternalSecret sync.
+    tags:
+      - cnpg-database-skill

@@ -1,0 +1,127 @@
+version: 1
+skill: grafana-dashboards
+description: "Verify GitOps provisioning workflow, sidecar ConfigMap label/annotation rules, datasource hardcoding, and method selection"
+tests:
+  - id: GRAF-01
+    description: "No Grafana MCP — authoring is GitOps via sidecar ConfigMap, not live push"
+    category: constraint
+    severity: critical
+    prompt: |
+      I want to create a custom Grafana dashboard for this homelab. What's the workflow — can I just push it to Grafana live?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["ConfigMap"]
+        any_of: ["no Grafana MCP", "no MCP", "not configured", "GitOps", "task reconcile"]
+      forbidden: ["mcp-grafana update_dashboard", "push to Grafana via MCP"]
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must state there is no Grafana MCP server in this repo and that custom dashboards are
+      provisioned via GitOps: write JSON, wrap in a sidecar ConfigMap, register in a
+      kustomization, then task reconcile. Must not claim a live MCP push workflow.
+    tags:
+      - grafana-dashboards-skill
+
+  - id: GRAF-02
+    description: "Sidecar ConfigMap label is grafana_dashboard with an EMPTY value (key only)"
+    category: constraint
+    severity: critical
+    prompt: |
+      Show me the ConfigMap metadata I need so the Grafana sidecar picks up my custom dashboard and puts it in a folder called Storage.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["grafana_dashboard", "grafana_folder"]
+        any_of: ["\"\"", "empty value", "label key", "Storage"]
+      forbidden: ["grafana_dashboard: \"true\""]
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must use the label key grafana_dashboard with an empty string value (this repo uses
+      labelValue: ""), not "true". Folder must be set via the grafana_folder annotation,
+      not a label.
+    tags:
+      - grafana-dashboards-skill
+
+  - id: GRAF-03
+    description: "Choose Helm values (gnetId/url) for vendor dashboards, ConfigMap for custom"
+    category: coverage
+    severity: high
+    prompt: |
+      I found a community dashboard on grafana.com (ID 1860) I want to add. Where do I configure it?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["gnetId", "helmrelease"]
+        any_of: ["dashboards", "Helm values", "revision", "datasource: Prometheus"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must direct vendor/community dashboards to the dashboards block in grafana/app/helmrelease.yaml
+      using gnetId (with a revision) rather than a sidecar ConfigMap.
+    tags:
+      - grafana-dashboards-skill
+
+  - id: GRAF-04
+    description: "Panel datasource must be hardcoded to uid prometheus, not a template variable"
+    category: constraint
+    severity: high
+    prompt: |
+      My custom dashboard panels all show "No data" after loading via the sidecar. The JSON uses "datasource": "${datasource}". What's wrong?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["prometheus"]
+        any_of: ["uid", "${datasource}", "hardcode", "template variable"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must explain that panels should hardcode the datasource to
+      { "type": "prometheus", "uid": "prometheus" } and not use a ${datasource} template
+      variable, which is why panels render blank.
+    tags:
+      - grafana-dashboards-skill
+
+  - id: GRAF-05
+    description: "Registration + reconcile + validate workflow with correct task names"
+    category: coverage
+    severity: medium
+    prompt: |
+      I wrote the dashboard ConfigMap YAML. What are the remaining steps to get it live and verify it?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["kustomization", "task reconcile"]
+        any_of: ["task template:validate-kubernetes-config", "resources", "sidecar", "logs"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must say to add the ConfigMap to the owning app's kustomization.yaml resources list,
+      run task reconcile, and verify in Grafana / sidecar logs. Should mention
+      task template:validate-kubernetes-config for validation.
+    tags:
+      - grafana-dashboards-skill
+
+  - id: GRAF-06
+    description: "Discover metrics by port-forwarding Prometheus, never guess names"
+    category: coverage
+    severity: medium
+    prompt: |
+      How do I find the right metric names to put on a new Ceph dashboard for this cluster?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["port-forward"]
+        any_of: ["9090", "prometheus", "__name__", "api/v1", "don't guess", "never guess"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must recommend port-forwarding the Prometheus service and querying it (metrics explorer
+      or the label values API) to confirm real metric names rather than guessing.
+    tags:
+      - grafana-dashboards-skill

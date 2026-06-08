@@ -1,0 +1,104 @@
+version: 1
+skill: instruction-eval
+description: "Verify the eval skill's own scoring rubric, discovery glob, and default model id"
+tests:
+  - id: EVL-01
+    description: "PASS requires ALL required keywords present (missing one downgrades to PARTIAL/FAIL)"
+    category: constraint
+    severity: critical
+    prompt: |
+      In the instruction-eval scoring rubric, a probe lists three required keywords and the response contains only two of them, with no forbidden keywords. What status does the probe get: PASS, PARTIAL, or FAIL?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["PARTIAL"]
+        any_of: ["not all", "missing", "some", "downgrade"]
+        forbidden: ["PASS is correct", "scores PASS"]
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must state that a probe scores PASS only when ALL required keywords are present.
+      With one required keyword missing and no forbidden hit, the status is PARTIAL, not PASS.
+    tags:
+      - instruction-eval-skill
+
+  - id: EVL-02
+    description: "Any forbidden keyword present forces an immediate FAIL regardless of required matches"
+    category: constraint
+    severity: critical
+    prompt: |
+      A probe in the instruction-eval harness matched all of its required keywords, but the response also contained one of the forbidden keywords. What status does run-eval.py assign?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["FAIL"]
+        any_of: ["forbidden", "immediate", "regardless"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must state that any forbidden keyword match forces FAIL immediately, even when all
+      required keywords are present. Forbidden is checked first and short-circuits scoring.
+    tags:
+      - instruction-eval-skill
+
+  - id: EVL-03
+    description: "Default judge/target model is claude-haiku-4-5, overridable via --model or ANTHROPIC_MODEL"
+    category: coverage
+    severity: high
+    prompt: |
+      What model does the instruction-eval run-eval.py script send probes to by default, and how do I override it?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["claude-haiku-4-5", "--model"]
+        any_of: ["ANTHROPIC_MODEL", "env", "environment"]
+        forbidden: ["claude-sonnet-4-6", "claude-opus", "gpt-"]
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must name claude-haiku-4-5 as the default model and mention overriding it via the
+      --model flag or the ANTHROPIC_MODEL env var. Must not name a stale or wrong model id.
+    tags:
+      - instruction-eval-skill
+
+  - id: EVL-04
+    description: "Probe discovery globs .agents/skills/*/tests.yaml plus optional .claude/tests.yaml"
+    category: coverage
+    severity: high
+    prompt: |
+      Where does the instruction-eval harness look for tests.yaml probe files in this repo?
+    scoring:
+      mode: keywords
+      keywords:
+        required: [".agents/skills", "tests.yaml"]
+        any_of: [".claude/tests.yaml", "optional", "CLAUDE.md"]
+        forbidden: [".claude/skills/*/tests.yaml"]
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must state probes are discovered from .agents/skills/*/tests.yaml (the canonical
+      per-skill location), plus an optional top-level .claude/tests.yaml for CLAUDE.md probes.
+      Must not claim the canonical glob is .claude/skills (those are symlinks).
+    tags:
+      - instruction-eval-skill
+
+  - id: EVL-05
+    description: "Probe schema fields: id, category, required, any_of, forbidden"
+    category: coverage
+    severity: medium
+    prompt: |
+      What are the scoring keyword groups in an instruction-eval probe, and what does each one mean for PASS/FAIL?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["required", "any_of", "forbidden"]
+        any_of: ["all", "at least one", "none", "≥1"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must describe the three keyword groups: required (all must match), any_of (at least one
+      must match), and forbidden (none may match). PASS needs all required + >=1 any_of + no forbidden.
+    tags:
+      - instruction-eval-skill

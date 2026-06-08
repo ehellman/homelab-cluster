@@ -1,0 +1,128 @@
+version: 1
+skill: sre
+description: "Verify read-only investigation posture, GitOps remediation, single-cluster framing, and symptom routing"
+tests:
+  - id: SRE-01
+    description: "Investigation is read-only; fixes go through Git/Flux, never live mutation"
+    category: constraint
+    severity: critical
+    prompt: |
+      An app pod is in CrashLoopBackOff because its DB password Secret is missing. The ExternalSecret
+      shows SecretSyncedError. Walk me through diagnosing and fixing it.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["ExternalSecret", "describe"]
+        any_of: ["git", "commit", "reconcile", "manifest", "GitOps"]
+        forbidden: ["kubectl apply", "kubectl delete", "kubectl patch", "kubectl edit"]
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must diagnose with read-only commands (describe externalsecret, logs) and recommend the fix as
+      a Git change to the manifest reconciled by Flux. Must NOT propose mutating the cluster directly
+      with apply/delete/patch/edit.
+    tags:
+      - sre-skill
+
+  - id: SRE-02
+    description: "Single cluster — rejects dev/integration/live multi-cluster and promotion-pipeline language"
+    category: constraint
+    severity: critical
+    prompt: |
+      Our live environment isn't updating after a merge. Walk me through the promotion pipeline from
+      the dev cluster through integration to live to find where it's stuck.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["single"]
+        any_of: ["one cluster", "no promotion", "no dev/integration/live", "not have", "there is no"]
+        forbidden: ["integration cluster", "live cluster", "promotion pipeline", "OCIRepository semver", "repository_dispatch"]
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must correct the premise: this is a single cluster with no dev/integration/live split and no
+      promotion pipeline. Should redirect to checking the failing Flux Kustomization/HelmRelease in
+      the one cluster. Must not walk through a multi-cluster promotion flow.
+    tags:
+      - sre-skill
+
+  - id: SRE-03
+    description: "Applies 5 Whys to reach root cause instead of stopping at the symptom"
+    category: coverage
+    severity: high
+    prompt: |
+      A pod keeps getting OOMKilled. My plan is to just bump the memory limit. Is that the fix?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["5 Whys"]
+        any_of: ["root cause", "why", "memory leak", "symptom"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Should warn that bumping a limit may treat the symptom, apply 5 Whys to find the real cause
+      (e.g. memory leak vs genuinely undersized), and note raising a limit is a 5-Whys red flag.
+    tags:
+      - sre-skill
+
+  - id: SRE-04
+    description: "Routes Flux/GitOps incidents to flux get and MCP, starting with reconciliation state"
+    category: coverage
+    severity: high
+    prompt: |
+      A HelmRelease for one of my apps says it's not ready. What's my first move to investigate?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["flux get helmreleases"]
+        any_of: ["describe helmrelease", "flux-operator-mcp", "flux get kustomizations", "dependsOn"]
+      forbidden: ["flux suspend", "flux resume"]
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must start from Flux reconciliation state (flux get helmreleases / describe, or the read-only
+      flux-operator-mcp). Must not propose suspend/resume as a fix (that is a live mutation).
+    tags:
+      - sre-skill
+
+  - id: SRE-05
+    description: "Uses kubectl logs for log search; does not assume Loki is deployed"
+    category: coverage
+    severity: medium
+    prompt: |
+      I want to search logs across the cluster to find the error. Can I query Loki for this?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["kubectl logs"]
+        any_of: ["planned", "not deployed", "not yet", "no Loki", "not available"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must state Loki is planned/not yet deployed and that log inspection is via kubectl logs
+      (including --previous) for now. Should not give Loki/LogQL query instructions as if deployed.
+    tags:
+      - sre-skill
+
+  - id: SRE-06
+    description: "Routes Cilium-blocked traffic to Hubble for diagnosis and cilium-expert for the fix"
+    category: coverage
+    severity: medium
+    prompt: |
+      One service can't reach another and I suspect a network policy is blocking it. How do I confirm
+      and fix it?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["hubble observe"]
+        any_of: ["DROPPED", "cilium-expert", "verdict"]
+      forbidden: ["kubectl apply", "kubectl edit"]
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must use Hubble to observe dropped flows to confirm a policy drop, and hand the policy change
+      to the cilium-expert skill as a Git change — not edit policy live.
+    tags:
+      - sre-skill

@@ -1,0 +1,100 @@
+version: 1
+skill: prometheus
+description: "Verify correct endpoints, port-forward setup, PromQL query mechanics, and alert/target inspection"
+tests:
+  - id: PROM-01
+    description: "Uses the correct observability namespace and kube-prometheus-stack service for port-forward"
+    category: constraint
+    severity: critical
+    prompt: |
+      I want to run PromQL against the cluster's Prometheus from my laptop. How do I reach it?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["port-forward", "observability", "kube-prometheus-stack-prometheus", "9090"]
+        forbidden: ["monitoring", "prometheus-operated"]
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must port-forward svc/kube-prometheus-stack-prometheus in the observability namespace on
+      port 9090. Must not use the monitoring namespace or prometheus-operated service (those are
+      from a different repo).
+    tags:
+      - prometheus-skill
+
+  - id: PROM-02
+    description: "Runs an instant query against /api/v1/query with URL-encoded PromQL"
+    category: coverage
+    severity: high
+    prompt: |
+      With the port-forward running on localhost:9090, give me a curl command to instant-query the metric 'up'.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["/api/v1/query", "query=up", "localhost:9090"]
+        any_of: ["--data-urlencode", "-G", "promql.sh"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must hit /api/v1/query with query=up against localhost:9090, either via curl -G
+      --data-urlencode or via the promql.sh helper.
+    tags:
+      - prometheus-skill
+
+  - id: PROM-03
+    description: "Lists firing alerts via /api/v1/alerts or the ALERTS metric"
+    category: coverage
+    severity: high
+    prompt: |
+      How do I see which alerts are currently firing in the cluster?
+    scoring:
+      mode: keywords
+      keywords:
+        any_of: ["/api/v1/alerts", "ALERTS{alertstate=\"firing\"}", "alerts --firing"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must query firing alerts via the /api/v1/alerts endpoint (filtering state=="firing"),
+      the ALERTS{alertstate="firing"} time series, or promql.sh alerts --firing.
+    tags:
+      - prometheus-skill
+
+  - id: PROM-04
+    description: "Checks scrape targets via /api/v1/targets to diagnose missing metrics"
+    category: coverage
+    severity: medium
+    prompt: |
+      A dashboard panel shows no data. How can I check from Prometheus whether the scrape target is actually up?
+    scoring:
+      mode: keywords
+      keywords:
+        any_of: ["/api/v1/targets", "up == 0", "activeTargets", "scrape target"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must inspect scrape targets via /api/v1/targets (filtering health != up) or query
+      'up == 0' to find down jobs, identifying a broken exporter/ServiceMonitor.
+    tags:
+      - prometheus-skill
+
+  - id: PROM-05
+    description: "Distinguishes this metrics skill from the read-only flux-operator-mcp"
+    category: constraint
+    severity: low
+    prompt: |
+      Should I use this Prometheus skill to check whether my Flux Kustomizations have reconciled?
+    scoring:
+      mode: keywords
+      keywords:
+        any_of: ["flux-operator-mcp", "not Flux", "metrics", "Flux state"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Should clarify this skill is for metrics/alerts, and Flux reconciliation state is handled
+      by the separate read-only flux-operator-mcp, not PromQL.
+    tags:
+      - prometheus-skill

@@ -1,0 +1,106 @@
+version: 1
+skill: self-improvement
+description: "Verify feedback is classified, confirmed before writing, routed to the right target, and regression-tested"
+tests:
+  - id: SELF-01
+    description: "Confirms with the user before writing any change"
+    category: constraint
+    severity: critical
+    prompt: |
+      Remember this: in this repo we always pin container images by digest, never by floating tags.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["confirm", "before"]
+        any_of: ["preview", "which file", "CLAUDE.md", "proposed"]
+        forbidden: ["committed to main"]
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must classify the feedback as durable, propose a target file, and confirm with the
+      user (showing a preview of the change) BEFORE editing anything. Must not silently write.
+    tags:
+      - self-improvement-skill
+
+  - id: SELF-02
+    description: "Scaffolds a new skill with the .claude symlink for reusable multi-step workflows"
+    category: constraint
+    severity: critical
+    prompt: |
+      The Velero backup-and-restore procedure is about eight steps and I keep re-explaining it.
+      Capture it as its own skill so future sessions have it.
+    scoring:
+      mode: keywords
+      keywords:
+        required: [".agents/skills/", "tests.yaml", "ln -s"]
+        any_of: [".claude/skills/", "symlink", "frontmatter"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      A reusable 5+ step procedure should become a new skill at .agents/skills/<name>/SKILL.md
+      with a tests.yaml, then symlinked from .claude/skills/<name> via
+      ln -s ../../.agents/skills/<name> .claude/skills/<name>.
+    tags:
+      - self-improvement-skill
+
+  - id: SELF-03
+    description: "Routes an always/never repo rule to the repo CLAUDE.md, not a subsystem skill"
+    category: coverage
+    severity: high
+    prompt: |
+      You should know: never push directly to the main branch in this repo. Document that.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["CLAUDE.md"]
+        any_of: ["never", "anti-pattern", "repo rule", "always"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      A universal never-rule for the whole repo belongs in the repo-root CLAUDE.md, not in a
+      single subsystem's SKILL.md.
+    tags:
+      - self-improvement-skill
+
+  - id: SELF-04
+    description: "Adds a tests.yaml regression probe when a skill's behavior changes"
+    category: coverage
+    severity: medium
+    prompt: |
+      Update the versions-renovate skill: we now also want it to mention running
+      `task renovate:validate` after every annotation change. Make sure the change sticks.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["tests.yaml"]
+        any_of: ["probe", "regression", "scoring", "keywords"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Changing a skill's behavior should be accompanied by an added/adjusted tests.yaml probe
+      in that skill so the new behavior is regression-tested.
+    tags:
+      - self-improvement-skill
+
+  - id: SELF-05
+    description: "Does not persist a one-off instruction"
+    category: constraint
+    severity: high
+    prompt: |
+      For this one task only, skip the linter. Don't bother saving that anywhere.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["one-off"]
+        any_of: ["not persist", "won't save", "skip", "no change"]
+        forbidden: ["CLAUDE.md update", "create a skill"]
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      A one-off instruction is not durable and must not be written to any SKILL.md or CLAUDE.md.
+      The skill should recognize it and take no persistence action.
+    tags:
+      - self-improvement-skill

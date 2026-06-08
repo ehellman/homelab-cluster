@@ -1,0 +1,105 @@
+version: 1
+skill: sync-claude
+description: "Verify doc discovery scope, branch-scoped changed mode, exclusion set, and task/path validation behavior"
+tests:
+  - id: SYNC-01
+    description: "Discovers root CLAUDE.md plus every .agents/skills/*/SKILL.md as the doc set"
+    category: coverage
+    severity: high
+    prompt: |
+      Which files does sync-claude treat as Claude docs to validate in this repo, and where does the real source live versus the .claude/skills symlinks?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["CLAUDE.md", ".agents/skills", "SKILL.md"]
+        any_of: ["symlink", ".claude/skills"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must name repo-root CLAUDE.md and every .agents/skills/<name>/SKILL.md as the docs.
+      Must note the source of truth is .agents/skills/ and .claude/skills/ are symlinks.
+    tags:
+      - sync-claude-skill
+
+  - id: SYNC-02
+    description: "changed mode is git-branch-scoped: diffs against main, not a full scan"
+    category: constraint
+    severity: critical
+    prompt: |
+      I only changed a couple of skills on my feature branch. How does sync-claude's `changed` mode decide which docs to validate, and what does it return if my branch has no changes?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["origin/main...HEAD", "changed"]
+        any_of: ["[]", "empty", "no changes", "branch"]
+      forbidden: ["full scan of all docs"]
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must explain changed mode diffs origin/main...HEAD (fallback main...HEAD), collects
+      directly-modified docs plus docs referencing changed paths, and returns [] when the
+      branch has no changes. Must not describe it as scanning all docs unconditionally.
+    tags:
+      - sync-claude-skill
+
+  - id: SYNC-03
+    description: "Exclusions are .git/node_modules/tmp/*-cache — not terragrunt"
+    category: constraint
+    severity: high
+    prompt: |
+      Which directories does sync-claude's discovery script exclude from scanning in this homelab repo?
+    scoring:
+      mode: keywords
+      keywords:
+        required: [".git", "node_modules"]
+        any_of: ["-cache", "tmp", "cache"]
+      forbidden: ["terragrunt", ".terragrunt-cache", ".terragrunt-stack"]
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must list .git, node_modules, tmp, and *-cache dirs as excludes. Must NOT mention
+      terragrunt excludes — those belong to the upstream source, not this repo.
+    tags:
+      - sync-claude-skill
+
+  - id: SYNC-04
+    description: "Validates namespaced task references against the included Taskfile"
+    category: constraint
+    severity: high
+    prompt: |
+      A SKILL.md says to run `task template:validate-schemas`. How does sync-claude confirm that command actually exists?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["validate-schemas", "Taskfile"]
+        any_of: [".taskfiles/template", "includes", "namespace", "grep"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must explain the namespaced name maps through Taskfile.yaml includes to target
+      validate-schemas in .taskfiles/template/Taskfile.yaml, and that validation greps for
+      the unqualified target there. A missing target is a stale reference.
+    tags:
+      - sync-claude-skill
+
+  - id: SYNC-05
+    description: "Reports stale references grouped by doc with a suggested fix, before editing"
+    category: coverage
+    severity: medium
+    prompt: |
+      sync-claude finds a SKILL.md referencing a kubernetes/apps path that no longer exists. What should it produce, and should it edit the doc immediately?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["suggested fix", "approval"]
+        any_of: ["grouped by doc", "before", "nearest existing", "remove"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must group findings by doc, give a suggested fix (nearest existing path or removal),
+      and present the report for approval before editing. Must not silently edit the doc.
+    tags:
+      - sync-claude-skill

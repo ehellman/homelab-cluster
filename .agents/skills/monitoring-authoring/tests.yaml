@@ -1,0 +1,129 @@
+version: 1
+skill: monitoring-authoring
+description: "Verify cluster-wide discovery handling, file placement, severity/for conventions, and absence of flagger/Canary"
+tests:
+  - id: MON-01
+    description: "Explains cluster-wide discovery: monitors/rules just need to exist, no release label required"
+    category: constraint
+    severity: critical
+    prompt: |
+      I'm adding a new PrometheusRule for an app in the database namespace. Do I need to add a
+      'release: kube-prometheus-stack' label or put it in the observability namespace for Prometheus
+      to find it?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["cluster-wide", "NilUsesHelmValues"]
+        any_of: ["any namespace", "no release label", "just exist", "no label"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must explain that the *SelectorNilUsesHelmValues flags are false, so Prometheus discovers
+      rules and monitors cluster-wide in any namespace. Must state no release label is required.
+    tags:
+      - monitoring-authoring-skill
+
+  - id: MON-02
+    description: "Rejects any flagger/Canary/canary-checker content (not present in this repo)"
+    category: constraint
+    severity: critical
+    prompt: |
+      Add a canary-checker Canary health check and a flagger Canary progressive rollout alongside
+      this app's monitoring resources.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["not"]
+        any_of: ["no flagger", "no canary", "does not exist", "not in this repo", "not present", "no Canary"]
+        forbidden: ["canaries.flanksource.com", "flagger.app", "kind: Canary"]
+    expect_refusal: true
+    manual_review: true
+    expected_behavior: |
+      Must state this repo has no flagger or canary-checker and must NOT author any Canary CR.
+      Should redirect to PrometheusRule/ServiceMonitor/PodMonitor instead.
+    tags:
+      - monitoring-authoring-skill
+
+  - id: MON-03
+    description: "Places resources in the owning app's app/ dir, registers in kustomization, omits namespace"
+    category: constraint
+    severity: high
+    prompt: |
+      Where do I put a new ServiceMonitor for the grafana app and what do I need to do for it to
+      be applied?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["app/", "kustomization.yaml"]
+        any_of: ["targetNamespace", "omit", "without namespace", "no metadata.namespace", "inherit"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must place the file in kubernetes/apps/observability/grafana/app/, register it under
+      resources in that dir's kustomization.yaml, and omit metadata.namespace since ks.yaml sets
+      targetNamespace.
+    tags:
+      - monitoring-authoring-skill
+
+  - id: MON-04
+    description: "Applies correct severity and for-duration conventions"
+    category: coverage
+    severity: medium
+    prompt: |
+      I'm writing a critical 'service down' alert and a warning alert for a flap-prone 5xx error
+      rate. What severity and for-duration should each use?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["critical", "warning"]
+        any_of: ["5m", "10m", "15m", "flap"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Service-down -> severity critical, for ~2m-5m. Flap-prone error-rate -> severity warning,
+      for 10m-15m to avoid noise.
+    tags:
+      - monitoring-authoring-skill
+
+  - id: MON-05
+    description: "ServiceMonitor selector must match the Service's labels and use a named port"
+    category: constraint
+    severity: high
+    prompt: |
+      My ServiceMonitor isn't scraping anything but there's no error. How do I debug it?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["selector"]
+        any_of: ["matchLabels", "--show-labels", "named port", "port name", "Service's labels"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must point to selector.matchLabels not matching the target Service (verify with kubectl get
+      svc --show-labels) and/or the endpoint port not matching a named Service port.
+    tags:
+      - monitoring-authoring-skill
+
+  - id: MON-06
+    description: "Validates with kubeconform via the repo task and verifies discovery"
+    category: coverage
+    severity: medium
+    prompt: |
+      How do I validate a new PrometheusRule before committing and confirm Prometheus loaded it?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["task template:validate-kubernetes-config"]
+        any_of: ["api/v1/rules", "kubectl get prometheusrule", "task reconcile"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must run task template:validate-kubernetes-config (kubeconform), then verify via
+      kubectl get prometheusrule -A or the Prometheus /api/v1/rules API.
+    tags:
+      - monitoring-authoring-skill

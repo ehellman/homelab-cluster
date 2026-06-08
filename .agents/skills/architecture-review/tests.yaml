@@ -1,0 +1,110 @@
+version: 1
+skill: architecture-review
+description: "Verify the framework enforces stack fit / reuse, rejects cloud-managed services for self-hostable needs, flags missing monitoring/secrets/network-policy, and respects Loki-is-planned"
+tests:
+  - id: ARCH-01
+    description: "Stack fit: reuse an existing deployed component instead of adding a duplicate"
+    category: constraint
+    severity: critical
+    prompt: |
+      I want to add a Postgres database for a new app. I was thinking of deploying the
+      Zalando postgres-operator. Does this fit our stack?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["CloudNative-PG"]
+        any_of: ["already deployed", "reuse", "existing", "stack fit", "database namespace"]
+        forbidden: ["deploy zalando", "use the zalando operator"]
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must recognize CloudNative-PG (CNPG) is already the Postgres standard in the
+      database namespace and steer the proposal to a CNPG Cluster rather than adding a
+      second, overlapping operator (stack bloat anti-pattern).
+    tags:
+      - architecture-review-skill
+
+  - id: ARCH-02
+    description: "Rejects a cloud-managed service for a self-hostable need"
+    category: constraint
+    severity: critical
+    prompt: |
+      For a new app's object storage, can we just point it at AWS S3 / an RDS instance
+      instead of running storage in the cluster?
+    scoring:
+      mode: keywords
+      keywords:
+        any_of: ["self-host", "self-hosted", "bare-metal", "Rook-Ceph", "cloud-only", "vendor lock-in"]
+        forbidden: ["yes, use AWS S3", "RDS is the best option", "managed service is preferred"]
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must flag cloud-only managed services as an anti-pattern in a self-hosted bare-metal
+      homelab and point to in-cluster alternatives (Rook-Ceph for storage, CNPG for
+      Postgres). May allow it only with an explicit justification, never as the default.
+    tags:
+      - architecture-review-skill
+
+  - id: ARCH-03
+    description: "Flags missing monitoring, secrets, and network policy on a new app"
+    category: coverage
+    severity: high
+    prompt: |
+      Here's my plan for a new app: a HelmRelease running one container, exposed via
+      envoy-internal. That's it — review it.
+    scoring:
+      mode: keywords
+      keywords:
+        any_of: ["ServiceMonitor", "PodMonitor", "PrometheusRule", "monitoring"]
+        required: ["ExternalSecret", "CiliumNetworkPolicy"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must call out the three day-1 gaps: no monitoring (ServiceMonitor/PodMonitor +
+      PrometheusRule), no secrets wiring (ExternalSecret via onepassword-connect), and no
+      network policy (CiliumNetworkPolicy). "Just run a container" is an anti-pattern.
+    tags:
+      - architecture-review-skill
+
+  - id: ARCH-04
+    description: "Does not assume Loki / centralized log aggregation exists"
+    category: constraint
+    severity: high
+    prompt: |
+      I want this app to ship its logs to our existing Loki so we get centralized log
+      search. Wire it up against what we have.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["Loki"]
+        any_of: ["planned", "not deployed", "not yet", "does not exist", "isn't deployed"]
+        forbidden: ["Loki is already deployed", "send logs to the existing Loki"]
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must state Loki is planned but not yet deployed, so the design cannot depend on it.
+      Should offer to propose adding Loki as part of the work rather than assuming it.
+    tags:
+      - architecture-review-skill
+
+  - id: ARCH-05
+    description: "Evaluates against the five criteria and cites a stack decision"
+    category: coverage
+    severity: medium
+    prompt: |
+      Should we add Traefik as an ingress controller for a new public app?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["Envoy Gateway"]
+        any_of: ["envoy-external", "Gateway API", "second ingress", "overlap", "stack fit"]
+        forbidden: ["yes, add Traefik", "Traefik is the right choice"]
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must recognize Envoy Gateway (Gateway API) already provides ingress via
+      envoy-internal/envoy-external and that adding Traefik duplicates it. Should route
+      the public app through envoy-external instead of a second ingress controller.
+    tags:
+      - architecture-review-skill

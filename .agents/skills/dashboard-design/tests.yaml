@@ -1,0 +1,82 @@
+version: 1
+skill: dashboard-design
+description: "Verify panel hierarchy, panel-type selection, threshold direction, and skill boundary"
+tests:
+  - id: DSH-01
+    description: "Golden signals (availability, error rate) belong in the top hero row, not buried"
+    category: constraint
+    severity: high
+    prompt: |
+      I'm building a platform health dashboard. Where should I put the availability and error-rate panels, and what panel type should they be?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["hero", "stat"]
+        any_of: ["top", "above the fold", "golden signal"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must place availability/error-rate in the top hero row as Stat panels with thresholds,
+      so golden signals are not buried below the fold.
+    tags:
+      - dashboard-design-skill
+
+  - id: DSH-02
+    description: "Selects correct panel type per data pattern (gauge for bounded %, timeseries for trends)"
+    category: coverage
+    severity: medium
+    prompt: |
+      I have PVC utilization as a percentage of capacity, and request latency over time. Which Grafana panel type for each?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["gauge", "timeseries"]
+        forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must recommend Gauge for the bounded-percentage utilization (circular fill) and
+      Timeseries for latency-over-time (meaningful time shape).
+    tags:
+      - dashboard-design-skill
+
+  - id: DSH-03
+    description: "Threshold step direction reflects which way is bad (less-is-worse for availability)"
+    category: constraint
+    severity: high
+    prompt: |
+      How should I set threshold color steps for an availability percentage panel where low is bad?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["red", "green"]
+        any_of: ["less-is-worse", "low", "null", "red\", \"value\": null"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must use a less-is-worse step order: red at the base (value null), rising through yellow
+      to green as availability increases — the inverse of the more-is-worse utilization pattern.
+    tags:
+      - dashboard-design-skill
+
+  - id: DSH-04
+    description: "Defers provisioning/ConfigMap mechanics to grafana-dashboards skill"
+    category: constraint
+    severity: medium
+    prompt: |
+      Once I've designed the dashboard, how do I actually deploy the JSON into the cluster so Grafana picks it up?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["grafana-dashboards"]
+        any_of: ["ConfigMap", "grafana_dashboard", "provision"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must redirect to the grafana-dashboards skill for provisioning mechanics (ConfigMap
+      labelled grafana_dashboard) rather than describing deployment itself.
+    tags:
+      - dashboard-design-skill

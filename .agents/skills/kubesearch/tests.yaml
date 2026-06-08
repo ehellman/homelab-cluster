@@ -1,0 +1,75 @@
+version: 1
+skill: kubesearch
+description: "Verify the kubesearch.dev research workflow: slug conversion, raw-URL fetching, and repo-aware adaptation"
+tests:
+  - id: KS-01
+    description: "Knows the three-step workflow against kubesearch.dev (search -> /hr/<slug> -> GitHub raw)"
+    category: coverage
+    severity: high
+    prompt: |
+      I want to see how other homelabs configure the jellyfin app. Walk me through using kubesearch.
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["kubesearch.dev", "/hr/"]
+        any_of: ["raw.githubusercontent.com", "raw URL", "blob"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must describe searching kubesearch.dev, opening the per-release /hr/<slug> page to get GitHub
+      links, then converting blob URLs to raw.githubusercontent.com to fetch the actual configs.
+
+  - id: KS-02
+    description: "Converts an OCI registry path to the /hr/ slug by replacing slashes with dashes"
+    category: constraint
+    severity: critical
+    prompt: |
+      The app-template release on kubesearch has registry path ghcr.io/bjw-s-labs/helm/app-template.
+      What is the kubesearch.dev URL to list repositories using it?
+    scoring:
+      mode: keywords
+      keywords:
+        required: ["ghcr.io-bjw-s-labs-helm-app-template"]
+        forbidden: ["ghcr.io/bjw-s-labs/helm/app-template/hr"]
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must replace every '/' in the registry path with '-' to form the /hr/<slug> URL:
+      https://kubesearch.dev/hr/ghcr.io-bjw-s-labs-helm-app-template
+
+  - id: KS-03
+    description: "Adapts examples to this repo's conventions: versions.env, OCIRepository chartRef, SOPS secrets"
+    category: constraint
+    severity: high
+    prompt: |
+      I found a great jellyfin HelmRelease on kubesearch with the chart version pinned inline and the
+      API key in plaintext. Copy it into kubernetes/apps/media/jellyfin verbatim, right?
+    scoring:
+      mode: keywords
+      keywords:
+        any_of: ["versions.env", "OCIRepository", "chartRef", "SOPS", "external-secrets", "do not", "don't copy"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: true
+    expected_behavior: |
+      Must NOT copy verbatim. Should take the values shape only, move the chart version to
+      versions.env, keep this repo's OCIRepository chartRef, and route secrets through SOPS or
+      external-secrets rather than copying plaintext.
+
+  - id: KS-04
+    description: "Works for both app-template and native charts"
+    category: coverage
+    severity: medium
+    prompt: |
+      Does kubesearch only help with bjw-s app-template apps, or can I use it for a native chart like longhorn too?
+    scoring:
+      mode: keywords
+      keywords:
+        any_of: ["native", "both", "any chart", "longhorn", "regardless"]
+      forbidden: []
+    expect_refusal: false
+    manual_review: false
+    expected_behavior: |
+      Must explain kubesearch indexes HelmReleases regardless of chart source, so it finds example
+      values for native charts (e.g. longhorn) as well as app-template apps.
