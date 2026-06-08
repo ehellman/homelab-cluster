@@ -27,7 +27,7 @@ function wait_for_nodes() {
 function apply_namespaces() {
     log debug "Applying namespaces"
 
-    local -r apps_dir="${ROOT_DIR}/kubernetes/apps"
+    local -r apps_dir="${ROOT_DIR}/clusters/homelab/kubernetes/apps"
 
     if [[ ! -d "${apps_dir}" ]]; then
         log error "Directory does not exist" "directory=${apps_dir}"
@@ -58,9 +58,9 @@ function apply_sops_secrets() {
     log debug "Applying secrets"
 
     local -r secrets=(
-        "${ROOT_DIR}/bootstrap/github-deploy-key.sops.yaml"
-        "${ROOT_DIR}/bootstrap/sops-age.sops.yaml"
-        "${ROOT_DIR}/kubernetes/components/sops/cluster-secrets.sops.yaml"
+        "${ROOT_DIR}/clusters/homelab/bootstrap/github-deploy-key.sops.yaml"
+        "${ROOT_DIR}/clusters/homelab/bootstrap/sops-age.sops.yaml"
+        "${ROOT_DIR}/clusters/homelab/kubernetes/components/sops/cluster-secrets.sops.yaml"
     )
 
     for secret in "${secrets[@]}"; do
@@ -88,7 +88,7 @@ function apply_sops_secrets() {
 function apply_crds() {
     log debug "Applying CRDs"
 
-    local -r helmfile_file="${ROOT_DIR}/bootstrap/helmfile.d/00-crds.yaml"
+    local -r helmfile_file="${ROOT_DIR}/clusters/homelab/bootstrap/helmfile.d/00-crds.yaml"
 
     if [[ ! -f "${helmfile_file}" ]]; then
         log fatal "File does not exist" "file" "${helmfile_file}"
@@ -114,7 +114,7 @@ function apply_crds() {
 function sync_helm_releases() {
     log debug "Syncing Helm releases"
 
-    local -r helmfile_file="${ROOT_DIR}/bootstrap/helmfile.d/01-apps.yaml"
+    local -r helmfile_file="${ROOT_DIR}/clusters/homelab/bootstrap/helmfile.d/01-apps.yaml"
 
     if [[ ! -f "${helmfile_file}" ]]; then
         log error "File does not exist" "file=${helmfile_file}"

@@ -2,7 +2,7 @@
 area/bootstrap:
   - changed-files:
       - any-glob-to-any-file:
-          - bootstrap/**/*
+          - clusters/homelab/bootstrap/**/*
 area/docs:
   - changed-files:
       - any-glob-to-any-file:
@@ -14,7 +14,7 @@ area/github:
 area/kubernetes:
   - changed-files:
       - any-glob-to-any-file:
-          - kubernetes/**/*
+          - clusters/homelab/kubernetes/**/*
 area/mise:
   - changed-files:
       - any-glob-to-any-file:
@@ -31,7 +31,7 @@ area/scripts:
 area/talos:
   - changed-files:
       - any-glob-to-any-file:
-          - talos/**/*
+          - clusters/homelab/talos/**/*
 area/taskfile:
   - changed-files:
       - any-glob-to-any-file:

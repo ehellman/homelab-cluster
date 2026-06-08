@@ -13,6 +13,6 @@
     },
     "yaml.schemaStore.enable": true,
     "yaml.schemas": {
-        "kubernetes": "./kubernetes/**/*.yaml"
+        "kubernetes": "./clusters/homelab/kubernetes/**/*.yaml"
     }
 }
