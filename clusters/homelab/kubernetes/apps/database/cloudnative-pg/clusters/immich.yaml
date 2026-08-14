@@ -7,7 +7,7 @@ metadata:
   name: postgres-immich
 spec:
   instances: 2
-  # Immich v2.x requires VectorChord >=0.3 <0.6
+  # Immich v3 accepts VectorChord >=0.3 <2.0 (pgvecto.rs support dropped in v3)
   imageName: ghcr.io/tensorchord/cloudnative-vectorchord:16-0.5.3
   primaryUpdateStrategy: unsupervised
 
