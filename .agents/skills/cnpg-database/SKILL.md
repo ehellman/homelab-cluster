@@ -18,7 +18,7 @@ user-invocable: false
 # CNPG Database Management
 
 All Postgres runs in the `database` namespace via the CloudNative-PG operator. Two Flux
-Kustomizations (`kubernetes/apps/database/cloudnative-pg/ks.yaml`):
+Kustomizations (`clusters/homelab/kubernetes/apps/database/cloudnative-pg/ks.yaml`):
 
 | Kustomization | Path | Contains |
 |-|-|-|
@@ -59,7 +59,7 @@ Storage class is always `ceph-block`. Every Cluster sets `monitoring.enablePodMo
 
 ## Workflow: dedicated cluster for a new app
 
-Files go in `kubernetes/apps/database/cloudnative-pg/clusters/`. Use `<app>` for the app name.
+Files go in `clusters/homelab/kubernetes/apps/database/cloudnative-pg/clusters/`. Use `<app>` for the app name.
 
 ### Step 1 — Credentials ExternalSecret (`<app>-secrets.yaml`)
 
@@ -166,7 +166,7 @@ Add to `clusters/kustomization.yaml` `resources`, secrets file before the cluste
 CNPG exposes services in the `database` namespace: `postgres-<app>-rw` (primary),
 `-ro` (replicas), `-r` (any). The app reads its own credentials, not the cluster's secret
 directly. In this repo the app's own ExternalSecret pulls the same `postgres_<app>`
-1Password item and builds a connection string (see `kubernetes/apps/media/immich/app/external-secret.yaml`):
+1Password item and builds a connection string (see `clusters/homelab/kubernetes/apps/media/immich/app/external-secret.yaml`):
 
 ```
 DB_HOSTNAME: postgres-<app>-rw.database.svc.cluster.local

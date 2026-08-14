@@ -122,4 +122,4 @@ $S query 'count by (job) (up == 0)'   # jobs with at least one down target
 - Always start the port-forward before querying; `curl: connection refused` means it is not running.
 - `promql.sh` uses `curl -sk -f` so a non-2xx response exits non-zero — check the port-forward first.
 - For authoring PrometheusRules / ServiceMonitors, edit the manifests under
-  `kubernetes/apps/observability/`; this skill only reads.
+  `clusters/homelab/kubernetes/apps/observability/`; this skill only reads.

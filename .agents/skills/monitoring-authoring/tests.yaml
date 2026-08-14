@@ -61,7 +61,7 @@ tests:
     expect_refusal: false
     manual_review: true
     expected_behavior: |
-      Must place the file in kubernetes/apps/observability/grafana/app/, register it under
+      Must place the file in clusters/homelab/kubernetes/apps/observability/grafana/app/, register it under
       resources in that dir's kustomization.yaml, and omit metadata.namespace since ks.yaml sets
       targetNamespace.
     tags:

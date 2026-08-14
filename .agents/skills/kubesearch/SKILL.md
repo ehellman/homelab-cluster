@@ -46,13 +46,15 @@ and similar stack (Talos, Flux, bare-metal, OCIRepository-based). Prefer repos t
 
 ## Mapping findings back to this repo
 
-This repo's apps live at `kubernetes/apps/<namespace>/<app>/` with a Flux `HelmRelease` whose
+This repo's apps live at `clusters/homelab/kubernetes/apps/<namespace>/<app>/` with a Flux `HelmRelease` whose
 `spec.chartRef` points at an `OCIRepository` or `HelmRepository`. When adapting an example:
 
 - Keep this repo's `chartRef` + `OCIRepository` pattern; copy only the `spec.values:` ideas.
 - For app-template apps, map their `controllers`/`service`/`ingress`/`persistence` blocks onto ours.
-- Chart/image versions belong in `kubernetes/platform/versions.env` (see `versions-renovate` skill),
-  not pinned inline — take the *shape* of the config from kubesearch, not the version numbers.
+- Chart/image versions are pinned **inline** here — chart version in `spec.chart.spec.version`,
+  image tags in `OCIRepository.spec.ref.tag` or `containers.<name>.image.tag` (see
+  `versions-renovate` skill). Take the *shape* of the config from kubesearch, not the
+  version numbers — let Renovate move those.
 - Secrets go through SOPS or external-secrets here — never copy plaintext creds from an example.
 
 ## Common repos worth checking

@@ -8,7 +8,7 @@ tool unless there is a documented reason.
 | Layer | Choice | When to deviate |
 |-|-|-|
 | OS | Talos Linux | Never on a whim — immutable, API-driven, no SSH. New nodes get the same machine config. |
-| GitOps | Flux | All workloads via `kubernetes/apps/<ns>/<app>/ks.yaml` + `app/` + HelmRelease. No `kubectl apply`. |
+| GitOps | Flux | All workloads via `clusters/homelab/kubernetes/apps/<ns>/<app>/ks.yaml` + `app/` + HelmRelease. No `kubectl apply`. |
 | CNI / network policy | Cilium (+ Hubble) | Default CNI. Use CiliumNetworkPolicy for segmentation; Hubble for flow visibility. |
 | Ingress | Envoy Gateway (Gateway API) | `envoy-internal` (LAN) or `envoy-external` (public), `${SECRET_DOMAIN}`, cert-manager TLS. No second ingress controller. |
 | Database | CloudNative-PG (ns `database`) | Postgres need → CNPG Cluster. Other engines only when Postgres genuinely cannot serve. |
@@ -34,7 +34,7 @@ Upgrades flow through the same declarative pipeline.
 ## Flux (over ArgoCD)
 
 CRD-native GitOps. Reconciles git → cluster headlessly, no UI to tempt manual ops.
-Layout is `kubernetes/apps/<namespace>/<app>/` with a `ks.yaml` (Flux Kustomization)
+Layout is `clusters/homelab/kubernetes/apps/<namespace>/<app>/` with a `ks.yaml` (Flux Kustomization)
 pointing at `app/`, which holds the HelmRelease and supporting manifests.
 
 **Deviate when**: never — all workloads go through Flux.

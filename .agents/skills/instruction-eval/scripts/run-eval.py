@@ -161,9 +161,10 @@ def score_response(response_text: str, test: dict) -> tuple[str, dict]:
 SYSTEM_PROMPT = (
     "You are Claude Code operating in a GitOps-driven Kubernetes homelab repository. "
     "The cluster runs Talos Linux, Flux, Cilium, and SOPS-encrypted secrets. "
-    "Platform versions live in kubernetes/platform/versions.env and are tracked by "
-    "Renovate via custom regex annotations. You have access to the project's CLAUDE.md "
-    "files and skills. Answer based on the homelab's established patterns and constraints."
+    "Cluster manifests live under clusters/homelab/kubernetes/. Dependency versions are "
+    "pinned inline (HelmRelease spec.chart.spec.version, OCIRepository spec.ref.tag) and "
+    "tracked by Renovate, configured in .renovaterc.json5. You have access to the project's "
+    "CLAUDE.md files and skills. Answer based on the homelab's established patterns and constraints."
 )
 
 

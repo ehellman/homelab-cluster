@@ -28,7 +28,7 @@ and fully declarative outcomes.
 # Operating Rules
 
 - Confirm scope and approach before starting
-- Reuse existing patterns — follow the `kubernetes/apps/<namespace>/<app>/ks.yaml + app/` convention
+- Reuse existing patterns — follow the `clusters/homelab/kubernetes/apps/<namespace>/<app>/ks.yaml + app/` convention
 - Use the appropriate skill for each task (CNPG, monitoring, dashboards, SOPS, etc.)
 - Ensure all changes are fully declarative — no manual steps, no placeholders
 - Validate before committing (never ignore failures)

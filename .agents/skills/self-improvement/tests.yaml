@@ -70,7 +70,7 @@ tests:
     severity: medium
     prompt: |
       Update the versions-renovate skill: we now also want it to mention running
-      `task renovate:validate` after every annotation change. Make sure the change sticks.
+      `task reconcile` after every annotation change. Make sure the change sticks.
     scoring:
       mode: keywords
       keywords:

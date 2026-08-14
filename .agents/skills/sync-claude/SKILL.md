@@ -59,23 +59,31 @@ subagent's output to a flat valid/invalid list with suggestions.
 | Markdown link target | resolve relative to repo root | file or dir exists |
 | `task <name>` | grep the name in `Taskfile.yaml` + `.taskfiles/**` | task is defined |
 | Skill reference | `.agents/skills/<name>/` exists | skill dir present |
-| Config reference | path exists | e.g. `.mcp.json`, `versions.env` resolve |
+| Config reference | path exists | e.g. `.mcp.json`, `.renovaterc.json5` resolve |
 
-Stack paths that should resolve: `kubernetes/apps/<ns>/<app>/`, `.agents/skills/`,
-`.taskfiles/`, `.github/`, `.mcp.json`.
+Stack paths that should resolve: `clusters/homelab/kubernetes/apps/<ns>/<app>/`,
+`.agents/skills/`, `.taskfiles/`, `.github/`, `.mcp.json`, `.renovaterc.json5`.
+
+Note the cluster dirs live under `clusters/homelab/` — a bare `kubernetes/...` path
+is stale and should be reported.
 
 ### Confirming a task is real
 
 Tasks are namespaced through `includes:` in `Taskfile.yaml`. A reference like
-`task template:validate-schemas` maps to target `validate-schemas` in
-`.taskfiles/template/Taskfile.yaml`; a bare `task reconcile` is a root target.
-Known-good examples: `task template:validate-kubernetes-config`,
-`task template:validate-schemas`, `task reconcile`. To verify, grep the unqualified
-target name (after the last `:`) under the included Taskfile, e.g.
+`task talos:upgrade-node` maps to target `upgrade-node` in
+`.taskfiles/talos/Taskfile.yaml`; a bare `task reconcile` is a root target.
+Known-good examples: `task reconcile`, `task talos:upgrade-k8s`, `task template:debug`.
+To verify, grep the unqualified target name (after the last `:`) under the included
+Taskfile, e.g.
 
 ```sh
-grep -rn '^  validate-schemas:' .taskfiles/template/Taskfile.yaml
+grep -rn '^  upgrade-node:' .taskfiles/talos/Taskfile.yaml
 ```
+
+**Existing is not the same as invocable.** A target marked `internal: true` cannot be
+run directly — `task` errors with `Task "x:y" is internal`. Docs telling a user to run
+one are stale even though the grep succeeds. Confirm with `task --list`, which shows
+only invocable targets. The `template:` validate/encrypt targets are all internal.
 
 ## Worked Example
 
@@ -84,14 +92,17 @@ grep -rn '^  validate-schemas:' .taskfiles/template/Taskfile.yaml
 ```json
 { "file": ".agents/skills/versions-renovate/SKILL.md",
   "task_commands": ["renovate:validate"],
-  "config_references": ["renovate.json5", "versions.env"],
-  "code_paths": ["kubernetes/platform/versions.env", ".github/renovate.json5"] }
+  "config_references": [".renovaterc.json5"],
+  "code_paths": ["clusters/homelab/talos/talenv.yaml", ".github/renovate.json5"] }
 ```
 
 Validate each:
 
-- `task renovate:validate` → grep `validate:` under `.taskfiles/renovate/` → pass/fail.
-- `versions.env`, `renovate.json5` → `test -e kubernetes/platform/versions.env` etc.
+- `task renovate:validate` → grep `validate:` under `.taskfiles/renovate/` → **fail**,
+  no such taskfile. Stale reference.
+- `.renovaterc.json5` → `test -e .renovaterc.json5` → pass. Note the config lives at the
+  repo root; `.github/renovate.json5` does **not** exist and is a common stale citation.
+- `clusters/homelab/talos/talenv.yaml` → pass.
 - Any `code_paths` entry that fails `test -e` is a stale reference → suggest the
   nearest existing path (`git ls-files | grep <basename>`) or removal.
 

@@ -25,7 +25,7 @@ Causes and fixes:
 - **`sops-age` secret missing** — bootstrap step didn't run. Re-apply
   `bootstrap/sops-age.sops.yaml` (decrypted) into `flux-system`.
 - **Kustomization missing `decryption.provider: sops`** — only relevant for a new
-  top-level Kustomization. Children of `kubernetes/flux/cluster/ks.yaml` inherit
+  top-level Kustomization. Children of `clusters/homelab/kubernetes/flux/cluster/ks.yaml` inherit
   it; don't re-add per app.
 
 ## `sops: no matching creation rules`

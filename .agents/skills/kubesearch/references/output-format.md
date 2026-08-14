@@ -20,10 +20,10 @@ When presenting research findings, structure as:
 
 ### Suggested config for this repo
 HelmRelease values adapted to our OCIRepository + app-template conventions
-(versions tracked in versions.env, secrets via SOPS/external-secrets):
+(versions pinned inline, secrets via SOPS/external-secrets):
 
 ```yaml
-# kubernetes/apps/<namespace>/<app>/app/helmrelease.yaml — spec.values excerpt
+# clusters/homelab/kubernetes/apps/<namespace>/<app>/app/helmrelease.yaml — spec.values excerpt
 ...
 ```
 ```

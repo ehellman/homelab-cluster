@@ -47,7 +47,7 @@ Score each principle Strong / Neutral / Weak:
 
 Always check first whether something already deployed solves the problem.
 - Does this overlap an existing tool? (e.g. proposing a second ingress when Envoy Gateway exists; a second secrets backend when external-secrets + 1Password is in place; a second DB engine when CloudNative-PG covers Postgres).
-- Does it integrate with the Flux layout (`kubernetes/apps/<ns>/<app>/ks.yaml` + `app/` + HelmRelease)?
+- Does it integrate with the Flux layout (`clusters/homelab/kubernetes/apps/<ns>/<app>/ks.yaml` + `app/` + HelmRelease)?
 - Does it run on bare-metal Talos? (no cloud-only managed services).
 - Does it use the standard packaging (bjw-s `app-template` or a native chart) and Renovate-tracked versions?
 - Storage → `ceph-block` (Rook-Ceph). Ingress → `envoy-internal` / `envoy-external`, `${SECRET_DOMAIN}`, cert-manager TLS. Network policy → Cilium.

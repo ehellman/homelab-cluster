@@ -52,10 +52,10 @@ so you can edit plaintext fields (metadata, comments) without re-encrypting.
 
 ```bash
 # Create a new k8s secret (lands under kubernetes/ → data/stringData encrypted)
-sops kubernetes/apps/<ns>/<app>/app/secret.sops.yaml   # opens $EDITOR, encrypts on save
+sops clusters/homelab/kubernetes/apps/<ns>/<app>/app/secret.sops.yaml   # opens $EDITOR, encrypts on save
 
 # Edit in place (decrypts to editor, re-encrypts on save)
-sops kubernetes/apps/.../secret.sops.yaml
+sops clusters/homelab/kubernetes/apps/.../secret.sops.yaml
 
 # Encrypt an existing plaintext manifest in place
 sops --encrypt --in-place path/to/secret.sops.yaml
@@ -83,10 +83,10 @@ stringData:        # use stringData for plaintext values; SOPS encrypts the valu
 1. `bootstrap/sops-age.sops.yaml` holds the age private key as a Secret named
    **`sops-age`** (key `age.agekey`) in `flux-system`. It's applied during
    bootstrap so the controller has the key.
-2. `kubernetes/apps/flux-system/flux-instance/app/helmrelease.yaml` patches
+2. `clusters/homelab/kubernetes/apps/flux-system/flux-instance/app/helmrelease.yaml` patches
    kustomize-controller with controller-level SOPS decryption pointing at that
    secret.
-3. `kubernetes/flux/cluster/ks.yaml` sets `spec.decryption.provider: sops` on the
+3. `clusters/homelab/kubernetes/flux/cluster/ks.yaml` sets `spec.decryption.provider: sops` on the
    Kustomizations, so every reconciled `*.sops.yaml` is decrypted automatically.
 
 You do **not** add per-Kustomization decryption config for new secrets — inheriting

@@ -1,80 +1,79 @@
 ---
 name: versions-renovate
 description: |
-  Managing platform versions and Renovate annotations in the homelab.
+  Managing dependency versions and Renovate annotations in the homelab.
 
-  Use when: (1) Adding a new version entry to versions.env, (2) Configuring Renovate to track a new dependency,
-  (3) Debugging why Renovate ignores or mis-detects a version, (4) Understanding annotation syntax for versions.env,
+  Use when: (1) Pinning a new chart/image version, (2) Configuring Renovate to track a new dependency,
+  (3) Debugging why Renovate ignores or mis-detects a version, (4) Understanding `# renovate:` annotation syntax,
   (5) Adding container image tracking to YAML files, (6) Configuring package rules or grouping in Renovate.
 
-  Triggers: "versions.env", "renovate annotation", "renovate not updating", "add version",
-  "renovate ignore", "datasource", "extractVersion", "package rule", "automerge",
-  "renovate validate", "dependency tracking", "version management"
+  Triggers: "renovate annotation", "renovate not updating", "add version", "pin version",
+  "renovate ignore", "datasource", "package rule", "automerge",
+  "renovate config", "dependency tracking", "version management", "talenv"
 user-invocable: false
 ---
 
 # Versions and Renovate Management
 
-Versions live in `kubernetes/platform/versions.env`. Renovate's custom regex manager in `.github/renovate.json5` parses `# renovate:` annotations on the line above each entry. Flux substitutes `${var}` references into HelmRelease specs at reconcile time.
+**There is no `versions.env` and no `kubernetes/platform/` directory in this repo.**
+Versions are pinned **inline**, at the point of use:
+
+| What | Where |
+|-|-|
+| Helm chart version | `HelmRelease` → `spec.chart.spec.version` |
+| OCI chart / image tag | `OCIRepository` → `spec.ref.tag` |
+| Container image tag | app-template values → `containers.<name>.image.tag` |
+| Talos + Kubernetes | `clusters/homelab/talos/talenv.yaml` (annotated) |
+| Bootstrap CRD charts | `clusters/homelab/bootstrap/helmfile.d/*.yaml` |
+
+Renovate config is **`.renovaterc.json5` at the repo root** (not `.github/renovate.json5`).
+
+Flux `postBuild.substituteFrom` pulls from the `cluster-secrets` Secret and is for values
+like `${SECRET_DOMAIN}` — it is **not** used for versions.
+
+## How Renovate finds things
+
+Most updates need **no annotation** — native managers handle them:
+
+- `flux` / `kubernetes` managers: any `.yaml` under a `kubernetes/` path
+- `helmfile` manager: `helmfile.d/*.yaml`
+- a custom manager auto-detects bare `oci://<image>:<tag>` in any YAML
+
+Annotations are only needed where a version sits in a plain key the native managers
+can't interpret — e.g. `talenv.yaml`.
 
 ## Annotation Syntax
 
-```env
-# renovate: datasource=<source> depName=<name> [packageName=<pkg>] [extractVersion=<regex>] [registryUrl=<url>] [versioning=<scheme>]
-variable_name=<value>
+The custom regex manager supports **three** fields only:
+
+```yaml
+# renovate: datasource=<source> depName=<name> [repository=<url>]
+key: <value>
 ```
 
-**Key ordering is fixed**: `datasource`, `depName`, `packageName`, `extractVersion`, `registryUrl`, `versioning`. Rearranging keys causes Renovate to silently skip the entry.
-
-| Field | Required | Purpose |
-|-------|----------|---------|
-| `datasource` | Yes | Where Renovate looks (`helm`, `docker`, `github-releases`, `github-tags`) |
-| `depName` | Yes | Human-readable name shown in Renovate PRs |
-| `packageName` | No | Registry-specific lookup path (OCI registries, GitHub repos) |
-| `extractVersion` | No | Regex to transform upstream version (e.g., strip `v` prefix) |
-| `registryUrl` | No | HTTP Helm repository URL (not for OCI) |
-| `versioning` | No | Version scheme override for non-semver (e.g., `loose`) |
-
-## Datasource Selection
-
-```
-HTTP Helm registry    --> datasource=helm + registryUrl=<url>
-OCI Helm registry     --> datasource=docker + packageName=<full-path>   (no oci:// prefix)
-GitHub release        --> datasource=github-releases + packageName=<org/repo>
-GitHub tag            --> datasource=github-tags + packageName=<org/repo>
+```yaml
+# renovate: datasource=docker depName=ghcr.io/siderolabs/installer
+talosVersion: v1.13.3
 ```
 
-## Examples
+- The annotation must sit **immediately above** the `key: value` (or `KEY=value`) line.
+- `repository=` is the Helm repo URL — note it is **`repository=`, not `registryUrl=`**.
+- `datasource` may be omitted; it defaults to `github-releases`.
+- `packageName`, `extractVersion` and `versioning` are **not** wired into this repo's
+  custom manager. If you need them, add a `packageRules` entry keyed on `matchDepNames`
+  instead of inventing annotation fields.
 
-```env
-# HTTP Helm registry
-# renovate: datasource=helm depName=grafana registryUrl=https://grafana.github.io/helm-charts
-grafana_version=10.5.15
+Datasource picking:
 
-# OCI Helm registry
-# renovate: datasource=docker depName=app-template packageName=ghcr.io/bjw-s-labs/helm/app-template
-app_template_version=4.6.2
-
-# GitHub releases (keep v prefix)
-# renovate: datasource=github-releases depName=talos packageName=siderolabs/talos
-talos_version=v1.12.2
-
-# GitHub tags (strip v prefix with extractVersion)
-# renovate: datasource=github-tags depName=kubernetes packageName=kubernetes/kubernetes extractVersion=^v(?<version>.*)$
-kubernetes_version=1.35.0
-
-# Strip v from Helm chart releases
-# renovate: datasource=helm depName=cert-manager extractVersion=^v(?<version>.*)$ registryUrl=https://charts.jetstack.io
-cert_manager_version=1.19.3
-
-# Non-semver versions
-# renovate: datasource=docker depName=cloudnative-vectorchord packageName=ghcr.io/tensorchord/cloudnative-vectorchord versioning=loose
-vectorchord_version=18.1-1.0.0
+```
+HTTP Helm registry  --> datasource=helm  + repository=<url>
+OCI Helm / image    --> datasource=docker  (depName = full path, no oci:// prefix)
+GitHub release      --> datasource=github-releases  (depName = org/repo)
 ```
 
 ## YAML Container Image Annotations
 
-For image tags hardcoded in Helm values files (sidecars, init containers):
+For image tags in Helm values that a native manager misses:
 
 ```yaml
 image:
@@ -83,36 +82,40 @@ image:
   tag: v0.7.5
 ```
 
-```yaml
-initContainers:
-  # renovate: datasource=docker depName=ghcr.io/home-operations/postgres-init
-  image: ghcr.io/home-operations/postgres-init:18
-```
-
 ## Package Rules
 
-Add to `.github/renovate.json5` to group related charts or block automerge:
+Add to `.renovaterc.json5` under `packageRules` to group or gate updates:
 
 ```json5
 {
-  "matchDepNames": ["my-chart", "related-chart"],
-  "groupName": "my stack"
+  matchDepNames: ["my-chart", "related-chart"],
+  groupName: "my stack",
 }
 ```
 
-`matchDepNames` values must match the `depName` in the annotation. By default, minor/patch updates automerge after 3 days (`.renovate/automerge.json5`). Infrastructure-critical groups (talos, kubernetes, cilium, gateway-api, flux) have automerge disabled.
+`matchDepNames` must match the `depName` Renovate reports (see the Dependency Dashboard issue).
+The flux-operator group is the worked example — it uses `minimumGroupSize: 3` so the operator,
+instance and manifests always move together.
 
-After changes, run `task renovate:validate`.
+**Automerge is deliberately narrow.** Only two rules enable it:
+
+- `github-actions` — minor/patch/digest, after `minimumReleaseAge: "3 days"`
+- `mise` — minor/patch
+
+Everything else (charts, container images, Talos, Terraform) opens a PR for manual review.
+There is no `.renovate/` directory and no `task renovate:validate`.
+
+Renovate runs on `schedule: ["every weekend"]` and ignores `**/*.sops.*`.
 
 ## Debugging
 
 | Symptom | Cause | Fix |
-|---------|---------|-----|
-| Silently ignored | Wrong key order | Follow exact order above |
-| Can't find package | `oci://` prefix in packageName | Remove `oci://` prefix |
-| Version has unwanted `v` | Missing `extractVersion` | Add `extractVersion=^v(?<version>.*)$` |
-| Can't find OCI chart | `datasource=helm` for OCI | Use `datasource=docker` |
-| Skips non-semver | Missing `versioning=loose` | Add `versioning=loose` |
-| Regex doesn't match | Annotation not on line above | Must be immediately above `key=value` |
+|-|-|-|
+| Silently ignored | Annotation not directly above the value line | Move it immediately above |
+| Silently ignored | Used `registryUrl=` | This repo's regex expects `repository=` |
+| Nothing detected in a new file | Path not matched by a manager | Custom manager covers `*.env`, `*.sh`, `*.yaml` |
+| Can't find OCI chart | `datasource=helm` used for OCI | Use `datasource=docker`, drop `oci://` |
+| Wrong package looked up | `oci://` prefix left in `depName` | Remove the prefix |
+| Two PRs for one component | Chart and CRD tracked separately | Group them via `packageRules` |
 
-Also check: dependency dashboard in the Renovate GitHub issue, `ignorePaths` in `renovate.json5`.
+Also check the Dependency Dashboard issue (`Renovate Dashboard :robot:`) and `ignorePaths`.

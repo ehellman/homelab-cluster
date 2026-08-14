@@ -52,13 +52,13 @@ PodMonitor, Probe, and ScrapeConfig in **any namespace, cluster-wide**. Conseque
 
 ## File Placement
 
-Resources live in the **owning app's** dir: `kubernetes/apps/<ns>/<app>/app/`, and are listed
+Resources live in the **owning app's** dir: `clusters/homelab/kubernetes/apps/<ns>/<app>/app/`, and are listed
 in that dir's `kustomization.yaml`. The Flux Kustomization (`ks.yaml`) sets `targetNamespace`, so
 monitors **omit `metadata.namespace`** — they inherit the app's namespace. Match the existing
-convention (see `kubernetes/apps/network/envoy-gateway/app/podmonitor.yaml`).
+convention (see `clusters/homelab/kubernetes/apps/network/envoy-gateway/app/podmonitor.yaml`).
 
 ```yaml
-# kubernetes/apps/<ns>/<app>/app/kustomization.yaml
+# clusters/homelab/kubernetes/apps/<ns>/<app>/app/kustomization.yaml
 resources:
   - ./helmrelease.yaml
   - ./servicemonitor.yaml   # add the new file here
@@ -80,7 +80,7 @@ metrics (error rates, latency). Group related rules under named groups (`name:` 
 the Prometheus UI). Recording rules use `level:metric:operation` naming, e.g.
 `app:http_requests:rate5m`.
 
-Concrete example (`kubernetes/apps/observability/grafana/app/prometheusrule.yaml`):
+Concrete example (`clusters/homelab/kubernetes/apps/observability/grafana/app/prometheusrule.yaml`):
 
 ```yaml
 ---
@@ -151,7 +151,7 @@ spec:
 
 Use when pods expose metrics with no Service (DaemonSets, sidecars). Use `podMetricsEndpoints`
 instead of `endpoints`. Numeric (unnamed) ports must be quoted: `port: "15020"`. See the real
-example at `kubernetes/apps/network/envoy-gateway/app/podmonitor.yaml`.
+example at `clusters/homelab/kubernetes/apps/network/envoy-gateway/app/podmonitor.yaml`.
 
 ## AlertmanagerConfig
 
@@ -179,7 +179,7 @@ spec:
 
 1. Prefer chart-native monitoring: check if the HelmRelease values expose `serviceMonitor.enabled`
    or `metrics.enabled` and turn it on rather than hand-authoring.
-2. Otherwise create the CR in `kubernetes/apps/<ns>/<app>/app/`, add the schema header, omit
+2. Otherwise create the CR in `clusters/homelab/kubernetes/apps/<ns>/<app>/app/`, add the schema header, omit
    `metadata.namespace`.
 3. Register the file in that dir's `kustomization.yaml`.
 4. Validate: `task template:validate-kubernetes-config` (kubeconform).

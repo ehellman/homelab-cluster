@@ -11,7 +11,7 @@ is about the one cluster.
 
 ### NET-001: No CiliumNetworkPolicy / CCNP — default-allow
 
-**Component**: Cilium CNI (`kubernetes/apps/kube-system/cilium`)
+**Component**: Cilium CNI (`clusters/homelab/kubernetes/apps/kube-system/cilium`)
 
 No `CiliumNetworkPolicy` or `CiliumClusterwideNetworkPolicy` resources exist in the repo. Pod-to-pod
 and egress traffic is unrestricted.

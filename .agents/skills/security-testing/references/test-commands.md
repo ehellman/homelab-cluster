@@ -108,7 +108,7 @@ flux get sources all
 kubectl get ocirepository,helmrepository,gitrepository -A -o wide
 
 # Renovate automerge posture for critical components (read config)
-git grep -n "automerge" -- .github/renovate.json5 .renovate/ 2>/dev/null
+git grep -n "automerge" -- .renovaterc.json5 2>/dev/null
 ```
 
 ---
