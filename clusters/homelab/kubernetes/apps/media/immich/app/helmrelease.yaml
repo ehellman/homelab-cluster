@@ -93,7 +93,13 @@ spec:
               IMMICH_HOST: 0.0.0.0
               IMMICH_PORT: &mlPort 3003
               MACHINE_LEARNING_CACHE_FOLDER: /cache
+              # HF_HOME also anchors HF_XET_CACHE (/cache/xet) and HF_HUB_CACHE
+              # (/cache/hub), so those need no explicit vars.
               HF_HOME: /cache
+              # readOnlyRootFilesystem makes matplotlib's default /.config
+              # unwritable; without this it falls back to a fresh /tmp dir and
+              # rebuilds its font cache on every start.
+              MPLCONFIGDIR: /cache/matplotlib-config
             probes:
               liveness: &mlProbes
                 enabled: true

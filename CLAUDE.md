@@ -27,10 +27,13 @@ terraform/          # Out-of-cluster infrastructure
 - **CNI / network policy:** Cilium (+ Hubble). **Ingress:** Envoy Gateway
   (Gateway API) — gateways `envoy-internal` / `envoy-external`, hostnames under
   `${SECRET_DOMAIN}`, TLS via cert-manager.
-- **Database:** CloudNative-PG (namespace `database`). **Storage:** Rook-Ceph
-  (`ceph-block`).
-- **Monitoring:** kube-prometheus-stack + standalone Grafana (namespace
-  `observability`). **Loki is planned, not yet deployed** — use `kubectl logs`.
+- **Database:** CloudNative-PG (namespace `database`) + Valkey. **Storage:**
+  `ceph-csi-rbd` against an **external** Ceph cluster (default StorageClass
+  `ceph-block`); TrueNAS NFS PVs for bulk media. Rook is **not** deployed —
+  there is no `CephCluster` CRD in the cluster.
+- **Monitoring:** kube-prometheus-stack + standalone Grafana +
+  opentelemetry-collector (namespace `observability`). **Loki is planned, not
+  yet deployed** — use `kubectl logs`.
 - **Secrets:** external-secrets + 1Password Connect (ClusterSecretStore
   `onepassword-connect`) for app secrets; **SOPS-age** for Talos/bootstrap.
 - **App packaging:** bjw-s `app-template` (OCI) or native charts.
@@ -70,9 +73,17 @@ If uncertain: stop, identify the ambiguity, ask the user. **Correctness > speed.
 - PRs target **`ehellman/homelab-cluster`** (the fork), not upstream.
 
 **Verification**
-- Before committing manifests, validate: `task template:validate-kubernetes-config`
-  (kubeconform) and `task template:validate-schemas` (CUE). Re-encrypt any changed
-  `*.sops.yaml` with `task template:encrypt-secrets`.
+- Before committing manifests, validate with kubeconform:
+  `bash .taskfiles/template/resources/kubeconform.sh clusters/homelab/kubernetes`
+- Changed Talos config: `talhelper validate talconfig clusters/homelab/talos/talconfig.yaml`
+- Re-encrypt any changed `*.sops.yaml`: `sops --encrypt --in-place <file>`
+  (check first with `sops filestatus <file>`).
+- The `template:*` validate/encrypt tasks are `internal: true` and cannot be
+  invoked directly — only `task configure` calls them, and that also re-renders
+  templates and overwrites the kubernetes directory. Do not run it to validate.
+  The CUE `validate-schemas` task additionally needs `cluster.yaml` / `nodes.yaml`,
+  which no longer exist in this repo.
+- CI runs `flux-local` (test + diff) on every PR — that is the real gate.
 - Never guess values — verify from source. Never ignore validation failures.
 
 # Skills & Agents
