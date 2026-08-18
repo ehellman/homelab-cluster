@@ -33,6 +33,14 @@
   },
   packageRules: [
     {
+      description: "Block CoreDNS chart 1.47.0+ (ships CoreDNS 1.14.6, which segfaults on startup on amd64). Known-good is chart 1.46.x / CoreDNS 1.13.1.",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["ghcr.io/coredns/charts/coredns"],
+      allowedVersions: "<1.47.0",
+      automerge: false,
+      dependencyDashboardApproval: true,
+    },
+    {
       description: "Override Helmfile Dependency Name",
       matchDatasources: ["docker"],
       matchManagers: ["helmfile"],
