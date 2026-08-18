@@ -48,8 +48,77 @@ spec:
     # 2 replicas for HA - they form a cluster and deduplicate alerts.
     alertmanager:
       enabled: true
+      # Notification routing. The chart default root route points at the built-in
+      # "null" receiver, so every alert notifies nobody. We define the full route
+      # tree inline (global routing catches cluster-wide alerts regardless of
+      # namespace) and send all real alerts to Pushover.
+      config:
+        global:
+          resolve_timeout: 5m
+        # Suppress lower-severity alerts when a higher-severity one for the same
+        # alert/namespace is already firing (kube-prometheus-stack defaults).
+        inhibit_rules:
+          - source_matchers:
+              - 'severity = critical'
+            target_matchers:
+              - 'severity =~ warning|info'
+            equal: ['namespace', 'alertname']
+          - source_matchers:
+              - 'severity = warning'
+            target_matchers:
+              - 'severity = info'
+            equal: ['namespace', 'alertname']
+          - source_matchers:
+              - 'alertname = InfoInhibitor'
+            target_matchers:
+              - 'severity = info'
+            equal: ['namespace']
+        route:
+          group_by: ['namespace', 'alertname']
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 12h
+          receiver: pushover
+          routes:
+            # Deadman's-switch and info inhibitor must NOT page - route to null.
+            - receiver: 'null'
+              matchers:
+                - alertname =~ "Watchdog|InfoInhibitor"
+            # Page critical alerts with Pushover high priority.
+            - receiver: pushover-critical
+              matchers:
+                - severity = "critical"
+        receivers:
+          - name: 'null'
+          - name: pushover
+            pushover_configs:
+              - token_file: /etc/alertmanager/secrets/alertmanager-pushover/token
+                user_key_file: /etc/alertmanager/secrets/alertmanager-pushover/user-key
+                priority: '0'
+                send_resolved: true
+                title: '{{ .CommonLabels.alertname }} ({{ .Status }})'
+                message: |-
+                  {{ range .Alerts }}{{ .Annotations.summary }}
+                  {{ .Annotations.description }}
+                  {{ end }}
+          - name: pushover-critical
+            pushover_configs:
+              - token_file: /etc/alertmanager/secrets/alertmanager-pushover/token
+                user_key_file: /etc/alertmanager/secrets/alertmanager-pushover/user-key
+                priority: '1'
+                send_resolved: true
+                title: '{{ .CommonLabels.alertname }} ({{ .Status }})'
+                message: |-
+                  {{ range .Alerts }}{{ .Annotations.summary }}
+                  {{ .Annotations.description }}
+                  {{ end }}
       alertmanagerSpec:
         replicas: 2
+        # Mount the Pushover credentials Secret at
+        # /etc/alertmanager/secrets/alertmanager-pushover/<key> for token_file /
+        # user_key_file above. The Secret is created by an ExternalSecret.
+        secrets:
+          - alertmanager-pushover
         # Persistent storage for silences and notification state
         storage:
           volumeClaimTemplate:
