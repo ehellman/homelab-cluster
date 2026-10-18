@@ -1,0 +1,54 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: coredns-canary
+  labels:
+    app.kubernetes.io/name: coredns-canary
+spec:
+  restartPolicy: Never
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+  tolerations:
+    - key: CriticalAddonsOnly
+      operator: Exists
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+  containers:
+    - name: coredns
+      image: mirror.gcr.io/coredns/coredns:1.14.6
+      imagePullPolicy: IfNotPresent
+      args:
+        - -conf
+        - /etc/coredns/Corefile
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+            - NET_BIND_SERVICE
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+      volumeMounts:
+        - name: config
+          mountPath: /etc/coredns
+  volumes:
+    - name: config
+      configMap:
+        name: coredns-canary
+        items:
+          - key: Corefile
+            path: Corefile
